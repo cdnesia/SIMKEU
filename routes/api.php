@@ -1,0 +1,13 @@
+<?php
+
+use App\Http\Controllers\Api\TagihanController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/test', function () {
+    return response()->json([
+        'message' => 'API Laravel 12 aktif'
+    ]);
+});
+
+Route::post('/cek-tagihan', [TagihanController::class, 'generateTagihanFromSimawa'])->middleware('verifyHmac');
+Route::post('/riwayat-pembayaran', [TagihanController::class, 'riwayatPembayaran'])->middleware('verifyHmac');
