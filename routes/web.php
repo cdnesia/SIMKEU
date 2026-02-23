@@ -20,13 +20,14 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::middleware(['auth','checkPermission'])->group(function () {
+Route::middleware(['auth', 'checkPermission'])->group(function () {
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
 
     Route::resource('users', UsersController::class)->except('show');
     Route::resource('roles', RolesController::class)->except('show');
     Route::resource('permissions', PermissionsController::class)->only('index', 'create', 'store', 'destroy');
 
+    Route::get('bipot/list-bipot', [BipotPerAngkatanController::class, 'list_bipot'])->name('bipot.list-bipot');
     Route::resource('bipot', BipotController::class)->except('show');
     Route::resource('bipot-per-angkatan', BipotPerAngkatanController::class);
 

@@ -48,13 +48,13 @@ class DataService
                 ->map(function ($tahunGroup) {
 
                     return $tahunGroup->groupBy(function ($item) {
-                        return $item->programKuliah->nama_program_perkuliahan ?? 'Tanpa Program';
+                        return $item->programKuliah
+                            ? $item->programKuliah->id . '-' . $item->programKuliah->nama_program_perkuliahan
+                            : 'Tanpa Program';
                     })
                         ->sortKeys(SORT_NATURAL)
                         ->map(function ($programGroup) {
-
                             $semesterGrouped = [];
-
                             foreach ($programGroup as $angkatan) {
                                 foreach ($angkatan->bipotSemester as $semester) {
 
