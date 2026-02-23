@@ -34,7 +34,7 @@ class SyncController extends Controller
 
         try {
             DB::beginTransaction();
-            DB::connection('simkeu_old')->table('keu_bipotnama')
+            DB::connection('simkeu_old1')->table('keu_bipotnama')
                 ->orderBy('id')
                 ->where('NA', 'N')
                 ->chunk(500, function ($rows) use (&$totalNew, $now, $existingCodes) {
@@ -76,7 +76,7 @@ class SyncController extends Controller
 
         try {
             DB::beginTransaction();
-            DB::connection('simkeu_old')->table('keu_bipot')
+            DB::connection('simkeu_old1')->table('keu_bipot')
                 ->whereIn('prodi', $prodis)
                 ->where('NA', 'N')
                 ->orderBy('id')
@@ -127,7 +127,7 @@ class SyncController extends Controller
 
         try {
             DB::beginTransaction();
-            DB::connection('simkeu_old')->table('keu_bipot2')
+            DB::connection('simkeu_old1')->table('keu_bipot2')
                 ->whereIn('bipotnama', $bipot)
                 ->whereIn('bipot', $bipotAngkatan)
                 ->where('NA', 'N')
