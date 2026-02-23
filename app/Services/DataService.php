@@ -140,6 +140,7 @@ class DataService
         $id_program_kuliah = $mahasiswa->program_kuliah_id;
         $kode_program_studi = $mahasiswa->kode_program_studi;
         $tahun_angkatan = $mahasiswa->tahun_angkatan;
+        $jenis_pendaftaran_id = $mahasiswa->jenis_pendaftaran_id;
         $semester = collect($this->expandTerms($tahun_angkatan, $tahunAkademik))->count();
 
         $exists = DB::connection('db_payment')
@@ -164,6 +165,7 @@ class DataService
             ->where('bpa.kode_prodi', $kode_program_studi)
             ->where('bpa.id_program_kuliah', $id_program_kuliah)
             ->where('bps.semester', $semester)
+            ->whereJsonContains('status_awal', $jenis_pendaftaran_id)
             ->get();
 
         $rincian_tagihan = [];

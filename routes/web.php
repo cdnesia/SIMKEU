@@ -15,11 +15,10 @@ use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Support\Facades\Route;
 
+Route::redirect('/', '/login', 301);
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-
 
 Route::middleware(['auth','checkPermission'])->group(function () {
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
