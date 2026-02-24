@@ -89,14 +89,26 @@ class TagihanController extends Controller
     }
     public function cekKontrakMk(Request $request)
     {
-        // $request->validate([
-        //     'npm' => 'required|string',
-        //     'tahun_akademik' => 'required|string',
-        // ]);
+        $request->validate([
+            'npm' => 'required|string',
+            'tahun_akademik' => 'required|string',
+        ]);
+
+        $cek_pembayaran = DB::table('tbl_pembayaran_mahasiswa')
+            ->where('npm', $request->npm)
+            ->where('tahun_akademik', $request->tahun_akademik)
+            ->get();
+
+        $status = false;
+        if ($cek_pembayaran->isNotEmpty()) {
+            $status = false;
+        }
 
         return response()->json([
             'success' => true,
-            'data' => 'oke',
+            'data' => [
+                'boleh_kontrak' => $status
+            ],
         ]);
     }
 }
