@@ -34,4 +34,7 @@ return [
         ],
     ],
 
+    'hmac_api_key' => env('HMAC_API_KEY'),
+    'hmac_secret'  => env('HMAC_SECRET'),
+
 ];

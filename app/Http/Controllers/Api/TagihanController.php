@@ -53,8 +53,6 @@ class TagihanController extends Controller
         }
 
         $hasil = $tagihan->map(function ($row) use ($request) {
-
-            // Ambil pembayaran hanya untuk tahun akademik yang sama
             $detail_pembayaran = DB::table('tbl_pembayaran_mahasiswa')
                 ->where('npm', $request->npm)
                 ->where('tahun_akademik', $row->tahun_akademik)
@@ -87,6 +85,18 @@ class TagihanController extends Controller
         return response()->json([
             'success' => true,
             'data' => $hasil
+        ]);
+    }
+    public function cekKontrakMk(Request $request)
+    {
+        // $request->validate([
+        //     'npm' => 'required|string',
+        //     'tahun_akademik' => 'required|string',
+        // ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => 'oke',
         ]);
     }
 }
