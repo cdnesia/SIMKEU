@@ -27,7 +27,7 @@ class VerifyHmac
             return response()->json(['message' => 'Request expired'], 401);
         }
 
-        $secret = config('hmac_secret');
+        $secret = config('services.hmac_secret');
 
         $body = $request->getContent();
         $data = $timestamp . $request->method() . $request->path() . $body;
