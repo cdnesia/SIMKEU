@@ -246,40 +246,68 @@ class DataService
                 ];
             }
 
+            $detail_tagihan_array = collect(json_decode($tagihanRaw->detail_tagihan))->keyBy('id_bipot');
+
             $id_record_tagihan = $tagihanRaw->id_record_tagihan;
             $tahun_akademik = $tagihanRaw->tahun_akademik;
             $npm = $tagihanRaw->npm;
-            $nominal = $dibayar;
+            $nominal = (int) $dibayar;
             $id_bipot = $idBipot;
             $nama_bipot = $masterBipot[$idBipot]->nama_bipot ?? 'Unknown';
             $bank = 'CASH';
             $metode = 'CASH';
 
             $cekPembayaran = DB::table('tbl_pembayaran_mahasiswa')
+                ->select(
+                    'id_bipot',
+                    'nama_bipot',
+                    DB::raw('SUM(nominal) as nominal'),
+                )
                 ->where('id_record_tagihan', $id_record_tagihan)
-                ->where('id_bipot', $id_bipot)
-                ->where('tahun_akademik', $tahun_akademik)->first();
-            if ($cekPembayaran) {
-                return [
-                    'success' => false,
-                    'message' => "Tagihan sudah ada didata pembayaran."
-                ];
-            }
+                ->where('tahun_akademik', $tahun_akademik)
+                ->groupBy('id_bipot', 'nama_bipot')
+                ->get()
+                ->keyBy('id_bipot');
 
-            DB::table('tbl_pembayaran_mahasiswa')->insert([
-                'id_record_tagihan' => $id_record_tagihan,
-                'tahun_akademik' => $tahun_akademik,
-                'npm' => $npm,
-                'nominal' => $nominal,
-                'id_bipot' => $id_bipot,
-                'nama_bipot' => $nama_bipot,
-                'bank' => $bank,
-                'metode' => $metode,
-                'waktu_transaksi' => Carbon::now()
-            ]);
+            $cek_nominal_tagihan = $detail_tagihan_array[$id_bipot]->nominal;
+            $total_nominal_sesudah_dimasukan = ($cekPembayaran[$id_bipot]->nominal ?? 0) + $nominal;
+
+            if ($cekPembayaran) {
+                if ($total_nominal_sesudah_dimasukan <= $cek_nominal_tagihan) {
+                    DB::table('tbl_pembayaran_mahasiswa')->insert([
+                        'id_record_tagihan' => $id_record_tagihan,
+                        'tahun_akademik' => $tahun_akademik,
+                        'npm' => $npm,
+                        'nominal' => $nominal,
+                        'id_bipot' => $id_bipot,
+                        'nama_bipot' => $nama_bipot,
+                        'bank' => $bank,
+                        'metode' => $metode,
+                        'waktu_transaksi' => Carbon::now()
+                    ]);
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Flagging tagihan gagal. Nominal melebihi biaya potongan',
+                    ];
+                }
+            } else {
+                DB::table('tbl_pembayaran_mahasiswa')->insert([
+                    'id_record_tagihan' => $id_record_tagihan,
+                    'tahun_akademik' => $tahun_akademik,
+                    'npm' => $npm,
+                    'nominal' => $nominal,
+                    'id_bipot' => $id_bipot,
+                    'nama_bipot' => $nama_bipot,
+                    'bank' => $bank,
+                    'metode' => $metode,
+                    'waktu_transaksi' => Carbon::now()
+                ]);
+            }
 
             $totalDibayar = DB::table('tbl_pembayaran_mahasiswa')
                 ->where('id_record_tagihan', $id_record_tagihan)
+                ->where('tahun_akademik', $tahun_akademik)
                 ->sum('nominal');
 
             DB::connection('db_payment')->table('tagihan')

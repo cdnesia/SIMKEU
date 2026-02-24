@@ -377,9 +377,16 @@ class TagihanController extends Controller
         }
 
         $detail_pembayaran = DB::table('tbl_pembayaran_mahasiswa')
+            ->select(
+                'id_bipot',
+                'nama_bipot',
+                DB::raw('SUM(nominal) as nominal'),
+            )
             ->where('id_record_tagihan', $tagihan->id_record_tagihan)
+            ->groupBy('id_bipot', 'nama_bipot')
             ->get()
             ->keyBy('id_bipot');
+
 
         $detail_tagihan  = json_decode($tagihan->detail_tagihan, true) ?? [];
         $detail_tagihan = array_map(function ($item) use ($detail_pembayaran) {

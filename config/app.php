@@ -124,6 +124,6 @@ return [
     ],
 
 
-    'encryption_key_absensi' => env('ABSENSI_ENCRYPTION_KEY'),
-    'encryption_iv_absensi'  => env('ABSENSI_ENCRYPTION_IV'),
+    'hmac_api_key' => env('HMAC_API_KEY'),
+    'hmac_secret'  => env('HMAC_SECRET'),
 ];
