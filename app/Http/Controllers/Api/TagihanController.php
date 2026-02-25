@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bipot;
 use App\Services\DataService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -109,6 +110,14 @@ class TagihanController extends Controller
             'data' => [
                 'boleh_kontrak' => $status
             ],
+        ]);
+    }
+    public function dataBipot()
+    {
+        $data = Bipot::all()->toArray();
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ]);
     }
 }
