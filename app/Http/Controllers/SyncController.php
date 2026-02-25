@@ -193,9 +193,12 @@ class SyncController extends Controller
         $totalNew = 0;
         $existingCodes = DB::connection('db_payment')->table('tagihan')->pluck('id')->toArray();
         try {
+            DB::connection('db_payment')->statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::connection('db_payment')->table('tagihan')->truncate();
+            DB::connection('db_payment')->statement('SET FOREIGN_KEY_CHECKS=1;');
+
             DB::beginTransaction();
             DB::connection('simkeu_old')->table('bjambi_biller')
-                // ->where('nama_program', 'REGULER A')
                 ->whereIn('tahun_akademik', ['20251', '20252', '20241', '20242', '20231', '20232'])
                 ->orderBy('id')
                 ->chunk(500, function ($rows) use (&$totalNew, $existingCodes, $prodi) {
@@ -245,8 +248,6 @@ class SyncController extends Controller
                         $totalNew++;
                     }
                     DB::connection('db_payment')->table('tagihan')->insert($insertData);
-                    // dd($insertData);
-
                 });
             DB::commit();
 
@@ -268,16 +269,18 @@ class SyncController extends Controller
             ->map(function ($items) {
                 return $items->keyBy('tahun_akademik');
             })->toArray();
-        // dd($tagihan);
 
         $totalNew = 0;
         $existingCodes = DB::table('tbl_pembayaran_mahasiswa')->pluck('id')->toArray();
         try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::table('tbl_pembayaran_mahasiswa')->truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
             DB::beginTransaction();
             DB::connection('simkeu_old1')->table('keu_bayarmhsw as b')
                 ->select('b.id', 'b.tahun', 'b.bukti_setoran', 'b.bipotmhsw', 'b.nim', 'b.pmb', 'b.tanggal', 'b.jam', 'b.bank', 'k.bipotnama', 'k.dibayar', 'b.keterangan')
                 ->join('keu_bipotmhsw as k', 'b.bipotmhsw', 'k.id')
-                // ->where('b.nim', 'S12561001')
                 ->where('b.NA', 'N')
                 ->where('k.NA', 'N')
                 ->whereIn('b.tahun', ['20251', '20252', '20241', '20242', '20231', '20232'])
@@ -315,7 +318,6 @@ class SyncController extends Controller
                         $totalNew++;
                     }
                     DB::table('tbl_pembayaran_mahasiswa')->insert($insertData);
-                    // dd($insertData);
                 });
             DB::commit();
 
