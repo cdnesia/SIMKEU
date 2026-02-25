@@ -200,7 +200,7 @@ class SyncController extends Controller
             DB::connection('simkeu_old')->table('bjambi_biller')
                 ->whereIn('tahun_akademik', ['20251', '20252', '20241', '20242', '20231', '20232'])
                 ->orderBy('id')
-                ->chunk(500, function ($rows) use (&$totalNew, $existingCodes, $prodi) {
+                ->chunk(500, function ($rows) use (&$totalNew, $prodi) {
                     $insertData = [];
                     foreach ($rows as $m) {
 
@@ -280,7 +280,7 @@ class SyncController extends Controller
                 ->where('k.NA', 'N')
                 ->whereIn('b.tahun', ['20251', '20252', '20241', '20242', '20231', '20232'])
                 ->orderBy('b.id')
-                ->chunk(500, function ($rows) use (&$totalNew, $existingCodes, $bipot, $tagihan) {
+                ->chunk(500, function ($rows) use (&$totalNew, $bipot, $tagihan) {
                     $insertData = [];
                     foreach ($rows as $m) {
                         $datetime = Carbon::parse($m->tanggal . ' ' . $m->jam)
