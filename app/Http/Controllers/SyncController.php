@@ -191,7 +191,6 @@ class SyncController extends Controller
             });
 
         $totalNew = 0;
-        $existingCodes = DB::connection('db_payment')->table('tagihan')->pluck('id')->toArray();
         try {
             DB::connection('db_payment')->statement('SET FOREIGN_KEY_CHECKS=0;');
             DB::connection('db_payment')->table('tagihan')->truncate();
@@ -204,9 +203,6 @@ class SyncController extends Controller
                 ->chunk(500, function ($rows) use (&$totalNew, $existingCodes, $prodi) {
                     $insertData = [];
                     foreach ($rows as $m) {
-                        if (in_array($m->id, $existingCodes)) {
-                            continue;
-                        }
 
                         $detailTagihan = json_decode($m->detail, true);
                         $idBipot = explode('-', $m->bipot2_id);
@@ -271,7 +267,6 @@ class SyncController extends Controller
             })->toArray();
 
         $totalNew = 0;
-        $existingCodes = DB::table('tbl_pembayaran_mahasiswa')->pluck('id')->toArray();
         try {
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             DB::table('tbl_pembayaran_mahasiswa')->truncate();
@@ -288,9 +283,6 @@ class SyncController extends Controller
                 ->chunk(500, function ($rows) use (&$totalNew, $existingCodes, $bipot, $tagihan) {
                     $insertData = [];
                     foreach ($rows as $m) {
-                        if (in_array($m->id, $existingCodes)) {
-                            continue;
-                        }
                         $datetime = Carbon::parse($m->tanggal . ' ' . $m->jam)
                             ->format('Y-m-d H:i:s');
 
