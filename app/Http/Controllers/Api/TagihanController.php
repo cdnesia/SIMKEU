@@ -101,7 +101,7 @@ class TagihanController extends Controller
 
         $status = false;
         if ($cek_pembayaran->isNotEmpty()) {
-            $status = false;
+            $status = true;
         }
 
         return response()->json([
