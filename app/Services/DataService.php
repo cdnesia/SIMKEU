@@ -123,7 +123,6 @@ class DataService
     public function generateTagihan($npm = null, $tahunAkademik = null, $jenis_tagihan = null)
     {
         $mahasiswa = DB::connection('db_siade')->table('master_mahasiswa')->where('npm', $npm)->first();
-
         if (!$mahasiswa) {
             return null;
         }
