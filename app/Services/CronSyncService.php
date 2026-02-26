@@ -200,7 +200,7 @@ class CronSyncService
                 'pembayaran.id_record_tagihan',
                 'pembayaran.id_record_pembayaran',
                 'pembayaran.waktu_transaksi_bank',
-                'pembayaran.nomor_pembayaran',
+                'pembayaran.nomor_tagihan',
                 'pembayaran.from_bank',
                 'pembayaran.proses',
                 'tagihan.*'
