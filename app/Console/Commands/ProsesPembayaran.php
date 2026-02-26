@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Http\Controllers\SyncController;
 use App\Services\CronSyncService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class ProsesPembayaran extends Command
 {
@@ -13,7 +14,7 @@ class ProsesPembayaran extends Command
      *
      * @var string
      */
-    protected $signature = 'pembayaran:sync';
+    protected $signature = 'sync:pembayaran';
 
     /**
      * The console command description.
@@ -33,13 +34,30 @@ class ProsesPembayaran extends Command
     public function handle()
     {
         $this->info('=== START SYNC ===');
+        Log::channel('sync_pembayaran')->info('=== START SYNC ===');
+        try {
+            $total = $this->sync->SyncPembayaranNew();
 
-        $tagihan = $this->sync->tagihan();
-        $this->info("Tagihan synced: {$tagihan}");
+            $this->info("Tagihan synced: {$total}");
+            Log::channel('sync_pembayaran')->info('SYNC BERHASIL', [
+                'total_processed' => $total
+            ]);
 
-        $bayar = $this->sync->pembayaran();
-        $this->info("Pembayaran synced: {$bayar}");
+            $this->info('=== SYNC SELESAI ===');
+            Log::channel('sync_pembayaran')->info('=== SYNC SELESAI ===');
+        } catch (\Throwable $e) {
 
-        $this->info('=== SYNC SELESAI ===');
+            $this->error('SYNC GAGAL!');
+
+            Log::channel('sync_pembayaran')->error('SYNC GAGAL', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            return 1;
+        }
+        return 0;
     }
 }

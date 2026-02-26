@@ -190,4 +190,113 @@ class CronSyncService
             throw $e;
         }
     }
+    public function SyncPembayaranNew()
+    {
+        $pembayaran = DB::connection('db_payment')
+            ->table('pembayaran')
+            ->select(
+                'pembayaran.id as pembayaran_id',
+                'pembayaran.jumlah_pembayaran',
+                'pembayaran.id_record_tagihan',
+                'pembayaran.id_record_pembayaran',
+                'pembayaran.waktu_transaksi_bank',
+                'pembayaran.nomor_pembayaran',
+                'pembayaran.from_bank',
+                'pembayaran.proses',
+                'tagihan.*'
+            )
+            ->join('tagihan', 'pembayaran.id_record_tagihan', '=', 'tagihan.id_record_tagihan')
+            ->where('proses', '0')
+            ->orderBy('pembayaran.id')
+            ->get();
+
+        $totalProcessed = 0;
+        foreach ($pembayaran as $row) {
+            DB::transaction(function () use ($row) {
+
+                $jumlahBayar = (int) $row->jumlah_pembayaran;
+                $npm = $row->npm;
+                $tahunAkademik = $row->tahun_akademik;
+
+                if ($jumlahBayar <= 0) {
+                    return;
+                }
+
+                $details = json_decode($row->detail_tagihan, true);
+                if (!is_array($details)) {
+                    return;
+                }
+
+                foreach ($details as $detail) {
+
+                    if ($jumlahBayar <= 0) {
+                        break; // uang habis
+                    }
+
+                    $idBipot = $detail['id_bipot'];
+                    $nominalDetail = (int) $detail['nominal'];
+
+                    // Total yang sudah dibayar untuk bipot ini
+                    $sudahDibayar = DB::table('tbl_pembayaran_mahasiswa')
+                        ->where('id_record_tagihan', $row->id_record_tagihan)
+                        ->where('npm', $npm)
+                        ->where('tahun_akademik', $tahunAkademik)
+                        ->where('id_bipot', $idBipot)
+                        ->sum('nominal');
+
+                    // Sisa tagihan sebenarnya
+                    $sisaTagihan = $nominalDetail - $sudahDibayar;
+
+                    if ($sisaTagihan <= 0) {
+                        continue; // sudah lunas
+                    }
+
+                    // Tentukan jumlah yang bisa dibayar sekarang
+                    $bayarSekarang = min($jumlahBayar, $sisaTagihan);
+
+                    $existing = DB::table('tbl_pembayaran_mahasiswa')
+                        ->where('id_record_tagihan', $row->id_record_tagihan)
+                        ->where('npm', $npm)
+                        ->where('tahun_akademik', $tahunAkademik)
+                        ->where('id_bipot', $idBipot)
+                        ->first();
+
+                    if ($existing) {
+
+                        // UPDATE -> tambah nominal lama + baru
+                        DB::table('tbl_pembayaran_mahasiswa')
+                            ->where('id', $existing->id)
+                            ->update([
+                                'nominal' => $existing->nominal + $bayarSekarang,
+                            ]);
+                    } else {
+
+                        // INSERT baru jika belum ada
+                        DB::table('tbl_pembayaran_mahasiswa')->insert([
+                            'id_record_tagihan'   => $row->id_record_tagihan,
+                            'id_record_pembayaran' => $row->id_record_pembayaran,
+                            'tahun_akademik'      => $tahunAkademik,
+                            'npm'                 => $npm,
+                            'id_bipot'            => $idBipot,
+                            'nama_bipot'          => $detail['nama_bipot'],
+                            'nominal'             => $bayarSekarang,
+                            'waktu_transaksi'     => $row->waktu_transaksi_bank,
+                            'bank'                => $row->from_bank == 'BSI' ? '1' : '2',
+                            'metode'              => 'H2H',
+                        ]);
+                    }
+
+                    // Kurangi uang yang tersedia
+                    $jumlahBayar -= $bayarSekarang;
+                }
+
+                DB::connection('db_payment')
+                    ->table('pembayaran')
+                    ->where('id', $row->pembayaran_id)
+                    ->update(['proses' => '1']);
+            });
+            $totalProcessed++;
+        }
+        return $totalProcessed;
+    }
 }

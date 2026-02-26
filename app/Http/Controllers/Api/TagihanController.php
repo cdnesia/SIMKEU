@@ -16,6 +16,25 @@ class TagihanController extends Controller
     {
         $this->tagihanService = $dataService;
     }
+    public function cekTagihanFromSimawa(Request $request)
+    {
+        $request->validate([
+            'npm' => 'required|string',
+            'tahun_akademik' => 'nullable|string',
+            'jenis_tagihan' => 'nullable|string'
+        ]);
+
+        $result = $this->tagihanService->cekTagihan($request->npm);
+
+        if (!$result) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mahasiswa tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json($result);
+    }
     public function generateTagihanFromSimawa(Request $request)
     {
         $request->validate([

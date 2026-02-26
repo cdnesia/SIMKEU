@@ -89,9 +89,7 @@ class DataService
             ->where('status', 'A')
             ->whereDate('tanggal_mulai', '<=', $today)
             ->whereDate('tanggal_selesai', '>=', $today);
-        if ($kodeProdi) {
-            $query->whereJsonContains('kode_program_studi', $kodeProdi);
-        }
+        $query->whereJsonContains('kode_program_studi', $kodeProdi);
         return $query->value('kode_tahun_akademik');
     }
 
@@ -119,18 +117,92 @@ class DataService
 
         return $query->get();
     }
-
-    public function generateTagihan($npm = null, $tahunAkademik = null, $jenis_tagihan = null)
+    public function cekTagihan($npm = null, $tahunAkademik = null, $jenis_tagihan = null)
     {
         $mahasiswa = DB::connection('db_siade')->table('master_mahasiswa')->where('npm', $npm)->first();
         if (!$mahasiswa) {
-            return null;
+            return [
+                'success' => false,
+                'message' => 'Mahasiswa tidak ditemukan.'
+            ];
         }
         if (!$jenis_tagihan) {
             $jenis_tagihan = 'SPP';
         }
         if (!$tahunAkademik) {
-            $tahunAkademik = $this->tahunAkademikAktif();
+            $tahunAkademik = $this->tahunAkademikAktif($mahasiswa->kode_program_studi);
+        }
+
+        $npm = $mahasiswa->npm;
+        $id_program_kuliah = $mahasiswa->program_kuliah_id;
+        $kode_program_studi = $mahasiswa->kode_program_studi;
+        $tahun_angkatan = $mahasiswa->tahun_angkatan;
+        $jenis_pendaftaran_id = $mahasiswa->jenis_pendaftaran_id;
+        $semester = collect($this->expandTerms($tahun_angkatan, $tahunAkademik))->count();
+
+        $exists = DB::connection('db_payment')
+            ->table('tagihan')
+            ->where('npm', $npm)
+            ->where('id_kelas_perkuliahan', $id_program_kuliah)
+            ->where('tahun_akademik', $tahunAkademik)
+            ->where('jenis_tagihan', $jenis_tagihan)
+            ->exists();
+
+        if ($exists) {
+            return [
+                'success' => false,
+                'message' => 'Tagihan ' . $jenis_tagihan . ' sudah ada untuk mahasiswa ini.',
+            ];
+        }
+
+        $tagihanRaw = DB::table('master_bipot_per_angkatan as bpa')
+            ->leftJoin('master_bipot_per_semester as bps', 'bpa.id', 'bps.id_bipot_angkatan')
+            ->leftJoin('master_bipot as b', 'b.id', 'bps.id_bipot')
+            ->where('bpa.kode_tahun', $tahun_angkatan)
+            ->where('bpa.kode_prodi', $kode_program_studi)
+            ->where('bpa.id_program_kuliah', $id_program_kuliah)
+            ->where('bps.semester', $semester)
+            ->whereJsonContains('bps.status_awal', $jenis_pendaftaran_id)
+            ->get();
+
+        $rincian_tagihan = [];
+        $total_tagihan = 0;
+        foreach ($tagihanRaw as $key => $value) {
+            $rincian_tagihan[] = [
+                'id_bipot' => $value->id_bipot,
+                'nama_bipot' => $value->nama_bipot,
+                'nominal' => $value->nominal
+            ];
+            $total_tagihan += $value->nominal;
+        }
+
+        $data_tagihan = [
+            'tahun_akademik' => $tahunAkademik,
+            'detail_tagihan' => json_encode($rincian_tagihan),
+            'total_tagihan' => $total_tagihan,
+            'nominal_ditagih' => $total_tagihan,
+        ];
+
+        return [
+            'success' => true,
+            'data' => $data_tagihan
+        ];
+    }
+
+    public function generateTagihan($npm = null, $tahunAkademik = null, $jenis_tagihan = null)
+    {
+        $mahasiswa = DB::connection('db_siade')->table('master_mahasiswa')->where('npm', $npm)->first();
+        if (!$mahasiswa) {
+            return [
+                'success' => false,
+                'message' => 'Mahasiswa tidak ditemukan.'
+            ];
+        }
+        if (!$jenis_tagihan) {
+            $jenis_tagihan = 'SPP';
+        }
+        if (!$tahunAkademik) {
+            $tahunAkademik = $this->tahunAkademikAktif($mahasiswa->kode_program_studi);
         }
 
         $npm = $mahasiswa->npm;
@@ -189,10 +261,10 @@ class DataService
             'kode_program_studi' => $kode_program_studi,
             'nama_program_studi' => $this->prodi($kode_program_studi)->value('nama_program_studi_idn'),
             'tahun_akademik' => $tahunAkademik,
+            'detail_tagihan' => json_encode($rincian_tagihan),
             'total_tagihan' => $total_tagihan,
             'nominal_ditagih' => $total_tagihan,
-            'detail_tagihan' => json_encode($rincian_tagihan),
-            'waktu_berakhir' => Carbon::now()->addMonths(2)->endOfDay(),
+            'waktu_berakhir' => Carbon::now()->addMonths(6)->endOfDay(),
             'jenis_tagihan' => $jenis_tagihan,
         ];
 
