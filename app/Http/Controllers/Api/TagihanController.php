@@ -139,4 +139,21 @@ class TagihanController extends Controller
             'data' => $data
         ]);
     }
+    public function cekPembayaranPMB(Request $request)
+    {
+        $request->validate([
+            'npm' => 'required|string',
+            'tahun_akademik' => 'required|string',
+        ]);
+
+        $cek_pembayaran = DB::table('tbl_pembayaran_mahasiswa')
+            ->where('npm', $request->npm)
+            ->where('tahun_akademik', $request->tahun_akademik)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $cek_pembayaran,
+        ]);
+    }
 }
