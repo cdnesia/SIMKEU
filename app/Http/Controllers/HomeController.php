@@ -9,7 +9,6 @@ class HomeController extends Controller
 {
     public function index(CronSyncService $cronSyncService)
     {
-        dd($cronSyncService->SyncPembayaranNew());
         return view('home');
     }
 }
