@@ -1,6 +1,10 @@
 @extends('layouts.app')
 @section('content')
-    {{-- @dd($bipot) --}}
+    {{-- <div class="card">
+        <div class="card-header d-flex align-items-center">
+            <h6 class="mb-0">Tahun Angkatan</h6>
+        </div>
+    </div> --}}
     @foreach ($bipot as $t => $item)
         <div class="card">
             <div class="card-header d-flex align-items-center bg-success">
@@ -108,11 +112,11 @@
                     </div>
 
                     <div class="modal-body">
-                        <input type="text" name="id" id="bipot_id">
-                        <input type="text" name="kode_tahun" id="kode_tahun">
-                        <input type="text" name="kelas_id" id="kelas_id">
-                        <input type="text" name="semester" id="semester">
-                        <input type="text" name="kode_prodi" id="kode_prodi" value="{{ request()->segment(2) }}">
+                        <input type="hidden" name="id" id="bipot_id">
+                        <input type="hidden" name="kode_tahun" id="kode_tahun">
+                        <input type="hidden" name="kelas_id" id="kelas_id">
+                        <input type="hidden" name="semester" id="semester">
+                        <input type="hidden" name="kode_prodi" id="kode_prodi" value="{{ request()->segment(2) }}">
 
                         <div class="col-md-12">
                             <label>Nama BIPOT</label>

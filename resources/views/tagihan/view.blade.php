@@ -94,6 +94,7 @@
             table = $('#example').DataTable({
                 processing: true,
                 serverSide: true,
+                stateSave: true,
                 scrollX: true,
                 ajax: "{{ url()->current() }}",
                 language: {

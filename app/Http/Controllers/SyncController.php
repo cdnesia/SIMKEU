@@ -268,10 +268,6 @@ class SyncController extends Controller
 
         $totalNew = 0;
         try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            DB::table('tbl_pembayaran_mahasiswa')->truncate();
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
             DB::beginTransaction();
             DB::connection('simkeu_old1')->table('keu_bayarmhsw as b')
                 ->select('b.id', 'b.tahun', 'b.bukti_setoran', 'b.bipotmhsw', 'b.nim', 'b.pmb', 'b.tanggal', 'b.jam', 'b.bank', 'k.bipotnama', 'k.dibayar', 'b.keterangan')
@@ -292,9 +288,7 @@ class SyncController extends Controller
                             continue;
                         }
 
-
                         $insertData[] = [
-                            'id' => $m->id,
                             'id_record_tagihan' => $id_record_tagihan,
                             'npm' => $m->nim,
                             'pmb' => $m->pmb,

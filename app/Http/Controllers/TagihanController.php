@@ -19,7 +19,7 @@ class TagihanController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = DB::connection('db_payment')->table('tagihan');
+            $data = DB::connection('db_payment')->table('tagihan')->whereNotLike('tahun_akademik', '%UMJA%');
             return DataTables::of($data)
                 ->addIndexColumn()
                 ->editColumn('detail_tagihan', function ($item) {

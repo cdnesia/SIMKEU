@@ -6,7 +6,15 @@
             'route' => 'dashboard',
         ],
         [
-            'title' => 'Transaksi',
+            'title' => 'Transaksi PMB',
+            'icon' => 'bx bx-money',
+            'children' => [
+                ['title' => 'Data Tagihan', 'route' => 'tagihan-pmb.index', 'icon' => 'bx bx-radio-circle'],
+                ['title' => 'Data Pembayaran', 'route' => 'pembayaran-pmb.index', 'icon' => 'bx bx-radio-circle'],
+            ],
+        ],
+        [
+            'title' => 'Transaksi SPP',
             'icon' => 'bx bx-money',
             'children' => [
                 ['title' => 'Data Tagihan', 'route' => 'tagihan.index', 'icon' => 'bx bx-radio-circle'],

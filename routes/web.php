@@ -7,11 +7,13 @@ use App\Http\Controllers\BipotPerSemesterController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JadwalPembayaranController;
 use App\Http\Controllers\PembayaranController;
+use App\Http\Controllers\PembayaranPMBController;
 use App\Http\Controllers\PermissionsController;
 use App\Http\Controllers\PerpanjanganPerMahasiswaController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TagihanController;
+use App\Http\Controllers\TagihanPMBController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,8 +35,11 @@ Route::middleware(['auth', 'checkPermission'])->group(function () {
 
     Route::resource('jadwal-pembayaran', JadwalPembayaranController::class)->except('show');
     Route::resource('perpanjangan-per-mahasiswa', PerpanjanganPerMahasiswaController::class)->except('show');
+
     Route::resource('tagihan', TagihanController::class);
+    Route::resource('tagihan-pmb', TagihanPMBController::class);
     Route::resource('pembayaran', PembayaranController::class);
+    Route::resource('pembayaran-pmb', PembayaranPMBController::class);
 
 
     Route::get('/master/sync/index', [SyncController::class, 'index'])->name('master.sync.index');

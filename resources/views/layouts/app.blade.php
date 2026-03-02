@@ -129,10 +129,10 @@
                                     alt="user avatar">
                             @endif
                             <div class="user-info">
-                                {{-- <p class="user-name mb-0 text-uppercase">
-                                    {{ $data_saya->saya(Session::get('id'))->nama_lengkap ?? 'Not Available' }}</p>
+                                <p class="user-name mb-0 text-uppercase">
+                                    {{ Auth::guard('web')?->user()?->name ?? 'Not Available' }}</p>
                                 <p class="designattion mb-0">
-                                    {{ $data_saya->saya(Session::get('id'))->nik ?? 'Not Available' }}</p> --}}
+                                    {{ Auth::guard('web')?->user()?->email ?? 'Not Available' }}</p>
                             </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
