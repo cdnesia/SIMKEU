@@ -59,6 +59,15 @@
                             value="{{ Carbon::parse($tagihan->waktu_berakhir)->format('Y-m-d') }}" class="form-control"
                             required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status Tagihan</label>
+                        <select name="status" id="status" data-placeholder="--Pilih Status--"
+                            class="form-select select2">
+                            <option value=""></option>
+                            <option value="Y" {{ e($tagihan->status_aktif) == 'Y' ? 'selected' : '' }}>Aktif</option>
+                            <option value="T" {{ e($tagihan->status_aktif) == 'T' ? 'selected' : '' }}>Tidak Aktif</option>
+                        </select>
+                    </div>
 
                 </div>
             </div>

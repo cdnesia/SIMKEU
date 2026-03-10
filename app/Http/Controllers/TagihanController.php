@@ -358,6 +358,7 @@ class TagihanController extends Controller
                 'total_tagihan'    => $total_tagihan,
                 'total_potongan'   => $total_potongan,
                 'nominal_ditagih'  => $ditagihkan,
+                'status_aktif'     => $request->status
             ]);
 
         return redirect()->route('tagihan.index')->with('success', 'Tagihan berhasil diubah.');
