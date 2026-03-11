@@ -168,7 +168,7 @@ class TagihanController extends Controller
 
         return response()->json([
             'success' => false,
-            'errors' => $validator->errors()
+            'errors' => 'berhasil'
         ], 422);
 
         if ($validator->fails()) {
