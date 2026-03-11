@@ -212,7 +212,10 @@ class TagihanController extends Controller
             ->where('tkm.id', $kegiatan_mahasiswa_id)
             ->get();
 
-
+        return response()->json([
+            'success' => false,
+            'errors' => 'berhasil'
+        ], 422);
         $rincian_tagihan = [];
         $total_tagihan = 0;
         foreach ($tagihanRaw as $key => $value) {
@@ -224,10 +227,6 @@ class TagihanController extends Controller
             $total_tagihan += $value->biaya_pendaftaran;
         }
 
-         return response()->json([
-            'success' => false,
-            'errors' => 'berhasil'
-        ], 422);
 
         $insert = [
             'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
