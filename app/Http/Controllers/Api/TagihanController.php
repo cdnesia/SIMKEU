@@ -206,16 +206,12 @@ class TagihanController extends Controller
             ], 409);
         }
 
-         return response()->json([
-            'success' => false,
-            'errors' => 'berhasil'
-        ], 422);
-
         $tagihanRaw = DB::connection('db_siade')->table('tbl_kegiatan_mahasiswa as tkm')
             ->join('dev_simkeu_new.master_bipot as b', 'b.id', 'tkm.id_bipot')
             ->select('b.id', 'b.nama_bipot', 'tkm.biaya_pendaftaran')
             ->where('tkm.id', $kegiatan_mahasiswa_id)
             ->get();
+
 
         $rincian_tagihan = [];
         $total_tagihan = 0;
@@ -227,6 +223,11 @@ class TagihanController extends Controller
             ];
             $total_tagihan += $value->biaya_pendaftaran;
         }
+
+         return response()->json([
+            'success' => false,
+            'errors' => 'berhasil'
+        ], 422);
 
         $insert = [
             'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
