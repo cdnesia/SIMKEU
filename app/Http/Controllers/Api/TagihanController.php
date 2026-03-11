@@ -166,6 +166,11 @@ class TagihanController extends Controller
             'kegiatan_mahasiswa_id' => 'required|integer',
         ]);
 
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
