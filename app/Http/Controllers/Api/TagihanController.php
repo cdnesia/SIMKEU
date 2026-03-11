@@ -173,11 +173,6 @@ class TagihanController extends Controller
             ], 422);
         }
 
-        return response()->json([
-            'success' => false,
-            'errors' => 'berhasil'
-        ], 422);
-
         $npm = $request->npm;
         $tahunAkademik = $request->tahun_akademik;
         $kegiatan_mahasiswa_id = $request->kegiatan_mahasiswa_id;
@@ -189,6 +184,11 @@ class TagihanController extends Controller
                 'message' => 'Mahasiswa tidak ditemukan',
             ], 409);
         }
+
+         return response()->json([
+            'success' => false,
+            'errors' => 'berhasil'
+        ], 422);
 
         $nama_mahasiswa = $mahasiswa->nama_mahasiswa;
         $va_code = '9' . substr($tahunAkademik, -2) . str_pad($mahasiswa->va_code, 6, '0', STR_PAD_LEFT);
