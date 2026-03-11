@@ -206,28 +206,33 @@ class TagihanController extends Controller
             ], 409);
         }
 
-        // $tagihanRaw = DB::connection('db_siade')->table('tbl_kegiatan_mahasiswa as tkm')
-        //     ->join('sql_simaku_umjambi_ac_id.master_bipot as b', 'b.id', 'tkm.id_bipot')
-        //     ->select('b.id', 'b.nama_bipot', 'tkm.biaya_pendaftaran')
-        //     ->where('tkm.id', $kegiatan_mahasiswa_id)
-        //     ->get();
+        $masterBipot = Bipot::get()->keyBy('id');
+
+        $tagihanRaw = DB::connection('db_siade')
+            ->table('tbl_kegiatan_mahasiswa as tkm')
+            ->select('tkm.id_bipot as id', 'tkm.biaya_pendaftaran')
+            ->where('tkm.id', $kegiatan_mahasiswa_id)
+            ->get();
+
+        $rincian_tagihan = [];
+        $total_tagihan = 0;
+
+        foreach ($tagihanRaw as $value) {
+            $rincian_tagihan[] = [
+                'id_bipot'   => $value->id,
+                'nama_bipot' => $masterBipot[$value->id]->nama_bipot ?? '',
+                'nominal'    => $value->biaya_pendaftaran,
+            ];
+
+            $total_tagihan += $value->biaya_pendaftaran;
+        }
+
 
         return response()->json([
             'success' => false,
             'message' => 'Tagihan KKN sudah ada untuk mahasiswa ini.',
+            'data' => $rincian_tagihan
         ], 409);
-
-        $rincian_tagihan = [];
-        $total_tagihan = 0;
-        foreach ($tagihanRaw as $key => $value) {
-            $rincian_tagihan[] = [
-                'id_bipot' => $value->id,
-                'nama_bipot' => $value->nama_bipot,
-                'nominal' => $value->biaya_pendaftaran,
-            ];
-            $total_tagihan += $value->biaya_pendaftaran;
-        }
-
 
         $insert = [
             'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
