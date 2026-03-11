@@ -227,13 +227,6 @@ class TagihanController extends Controller
             $total_tagihan += $value->biaya_pendaftaran;
         }
 
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Tagihan KKN sudah ada untuk mahasiswa ini.',
-            'data' => $rincian_tagihan
-        ], 409);
-
         $insert = [
             'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
             'npm' => $npm,
