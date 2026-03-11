@@ -214,8 +214,10 @@ class TagihanController extends Controller
 
         return response()->json([
             'success' => false,
-            'errors' => 'berhasil'
+            'errors' => 'berhasil',
+            'data' => $tagihanRaw
         ], 422);
+
         $rincian_tagihan = [];
         $total_tagihan = 0;
         foreach ($tagihanRaw as $key => $value) {
