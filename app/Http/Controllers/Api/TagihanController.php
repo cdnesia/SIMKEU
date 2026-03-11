@@ -212,6 +212,11 @@ class TagihanController extends Controller
             ->where('tkm.id', $kegiatan_mahasiswa_id)
             ->get();
 
+        return response()->json([
+            'success' => false,
+            'message' => 'Tagihan KKN sudah ada untuk mahasiswa ini.',
+        ], 409);
+
         $rincian_tagihan = [];
         $total_tagihan = 0;
         foreach ($tagihanRaw as $key => $value) {
