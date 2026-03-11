@@ -185,10 +185,6 @@ class TagihanController extends Controller
             ], 409);
         }
 
-         return response()->json([
-            'success' => false,
-            'errors' => 'berhasil'
-        ], 422);
 
         $nama_mahasiswa = $mahasiswa->nama_mahasiswa;
         $va_code = '9' . substr($tahunAkademik, -2) . str_pad($mahasiswa->va_code, 6, '0', STR_PAD_LEFT);
@@ -209,6 +205,11 @@ class TagihanController extends Controller
                 'message' => 'Tagihan KKN sudah ada untuk mahasiswa ini.',
             ], 409);
         }
+
+         return response()->json([
+            'success' => false,
+            'errors' => 'berhasil'
+        ], 422);
 
         $tagihanRaw = DB::connection('db_siade')->table('tbl_kegiatan_mahasiswa as tkm')
             ->join('dev_simkeu_new.master_bipot as b', 'b.id', 'tkm.id_bipot')
