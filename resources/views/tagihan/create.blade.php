@@ -67,8 +67,32 @@
 
                     <div class="mb-3">
                         <label class="form-label">Jenis Tagihan</label>
-                        <input type="text" class="form-control" name="jenis_tagihan" value="{{ old('jenis_tagihan') }}"
-                            required placeholder="Jenis Tagihan">
+                        <div class="">
+                            <div class="form-check">
+                                <input class="form-check-input @error('jenis_tagihan') is-invalid @enderror" id="17"
+                                    type="radio" value="SPP" name="jenis_tagihan"
+                                    {{ old('jenis_tagihan') == 'SPP' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="17">SPP</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input @error('jenis_tagihan') is-invalid @enderror" id="18"
+                                    type="radio" value="KKN" name="jenis_tagihan"
+                                    {{ old('jenis_tagihan') == 'KKN' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="18">KKN</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input @error('jenis_tagihan') is-invalid @enderror" id="19"
+                                    type="radio" value="SEMINAR PROPOSAL" name="jenis_tagihan"
+                                    {{ old('jenis_tagihan') == 'SEMINAR PROPOSAL' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="19">SEMINAR PROPOSAL</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input @error('jenis_tagihan') is-invalid @enderror" id="20"
+                                    type="radio" value="SIDANG AKHIR" name="jenis_tagihan"
+                                    {{ old('jenis_tagihan') == 'SIDANG AKHIR' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="20">SIDANG AKHIR</label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
