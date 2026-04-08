@@ -253,6 +253,101 @@ class TagihanController extends Controller
 
         return response()->json($result);
     }
+    public function generateTagihanSeminarProposal(Request $request, DataService $dataService)
+    {
+        $validator = Validator::make($request->all(), [
+            'npm' => 'required|string',
+            'tahun_akademik' => 'required|string',
+            'kegiatan_mahasiswa_id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $npm = $request->npm;
+        $tahunAkademik = $request->tahun_akademik;
+        $kegiatan_mahasiswa_id = $request->kegiatan_mahasiswa_id;
+
+        $mahasiswa = DB::connection('db_siade')->table('master_mahasiswa')->where('npm', $npm)->first();
+        if (!$mahasiswa) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mahasiswa tidak ditemukan',
+            ], 409);
+        }
+
+
+        $nama_mahasiswa = $mahasiswa->nama_mahasiswa;
+        $va_code = '8' . substr($tahunAkademik, -2) . str_pad($mahasiswa->va_code, 6, '0', STR_PAD_LEFT);
+        $id_program_kuliah = $mahasiswa->program_kuliah_id;
+        $kode_program_studi = $mahasiswa->kode_program_studi;
+
+        $exists = DB::connection('db_payment')
+            ->table('tagihan')
+            ->where('npm', $npm)
+            ->where('id_kelas_perkuliahan', $id_program_kuliah)
+            ->where('tahun_akademik', $tahunAkademik)
+            ->where('jenis_tagihan', 'SEMINAR PROPOSAL')
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tagihan Seminar Proposal sudah ada untuk mahasiswa ini.',
+            ], 409);
+        }
+
+        $masterBipot = Bipot::get()->keyBy('id');
+
+        $tagihanRaw = DB::connection('db_siade')
+            ->table('tbl_kegiatan_mahasiswa as tkm')
+            ->select('tkm.id_bipot as id', 'tkm.biaya_pendaftaran')
+            ->where('tkm.id', $kegiatan_mahasiswa_id)
+            ->get();
+
+        $rincian_tagihan = [];
+        $total_tagihan = 0;
+
+        foreach ($tagihanRaw as $value) {
+            $rincian_tagihan[] = [
+                'id_bipot'   => $value->id,
+                'nama_bipot' => $masterBipot[$value->id]->nama_bipot ?? '',
+                'nominal'    => $value->biaya_pendaftaran,
+            ];
+
+            $total_tagihan += $value->biaya_pendaftaran;
+        }
+
+        $insert = [
+            'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
+            'npm' => $npm,
+            'nama_mahasiswa' => $nama_mahasiswa,
+            'nomor_tagihan' => $va_code,
+            'id_kelas_perkuliahan' => $id_program_kuliah,
+            'nama_kelas_perkuliahan' => $dataService->kelas($id_program_kuliah)->value('nama_program_perkuliahan'),
+            'nama_fakultas' => $dataService->prodi($kode_program_studi)->value('nama_fakultas_idn'),
+            'kode_program_studi' => $kode_program_studi,
+            'nama_program_studi' => $dataService->prodi($kode_program_studi)->value('nama_program_studi_idn'),
+            'tahun_akademik' => $tahunAkademik,
+            'detail_tagihan' => json_encode($rincian_tagihan),
+            'total_tagihan' => $total_tagihan,
+            'nominal_ditagih' => $total_tagihan,
+            'waktu_berakhir' => Carbon::now()->addMonths(6)->endOfDay(),
+            'jenis_tagihan' => 'SEMINAR PROPOSAL',
+        ];
+
+        DB::connection('db_payment')->table('tagihan')->insert($insert);
+        $result = [
+            'success' => true,
+            'message' => 'Tagihan Seminar Proposal berhasil dibuat.',
+        ];
+
+        return response()->json($result);
+    }
     public function cekTagihanKKN(Request $request)
     {
         $request->validate([
