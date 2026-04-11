@@ -350,15 +350,9 @@ class TagihanController extends Controller
     }
     public function cekTagihanKKN(Request $request)
     {
-        $request->validate([
-            'npm' => 'required|string',
-            'tahun_akademik' => 'nullable|string',
-        ]);
-
         $result = DB::table('tbl_pembayaran_mahasiswa')
-            ->where('npm', $request->npm)
             ->whereIn('id_bipot', [17,29])
-            ->first();
+            ->get();
 
         return response()->json([
             'success' => true,
