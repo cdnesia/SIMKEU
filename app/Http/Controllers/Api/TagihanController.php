@@ -355,15 +355,14 @@ class TagihanController extends Controller
             'tahun_akademik' => 'nullable|string',
         ]);
 
-        $result = DB::connection('db_payment')
-            ->table('tagihan')
+        $result = DB::table('tbl_pembayaran_mahasiswa')
             ->where('npm', $request->npm)
-            ->where('jenis_tagihan', 'KKN')
+            ->whereIn('id_bipot', [17,29])
             ->first();
 
         return response()->json([
             'success' => true,
-            'message' => 'Tagihan KKN sudah ada untuk mahasiswa ini.',
+            'message' => '',
             'data' => $result
         ]);
     }
