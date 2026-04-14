@@ -221,10 +221,10 @@ class TagihanController extends Controller
             $rincian_tagihan[] = [
                 'id_bipot'   => $value->id,
                 'nama_bipot' => $masterBipot[$value->id]->nama_bipot ?? '',
-                'nominal'    => $value->biaya_pendaftaran,
+                'nominal'    => (int) $value->biaya_pendaftaran,
             ];
 
-            $total_tagihan += $value->biaya_pendaftaran;
+            $total_tagihan += (int) $value->biaya_pendaftaran;
         }
 
         $insert = [
@@ -316,10 +316,10 @@ class TagihanController extends Controller
             $rincian_tagihan[] = [
                 'id_bipot'   => $value->id,
                 'nama_bipot' => $masterBipot[$value->id]->nama_bipot ?? '',
-                'nominal'    => $value->biaya_pendaftaran,
+                'nominal'    => (int)$value->biaya_pendaftaran,
             ];
 
-            $total_tagihan += $value->biaya_pendaftaran;
+            $total_tagihan += (int)$value->biaya_pendaftaran;
         }
 
         $insert = [
@@ -351,7 +351,7 @@ class TagihanController extends Controller
     public function cekTagihanKKN(Request $request)
     {
         $result = DB::table('tbl_pembayaran_mahasiswa')
-            ->whereIn('id_bipot', [17,29])
+            ->whereIn('id_bipot', [17, 29])
             ->get();
 
         return response()->json([
