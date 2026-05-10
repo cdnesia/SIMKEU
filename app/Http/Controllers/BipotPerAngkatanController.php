@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bipot;
 use App\Models\BipotPerAngkatan;
+use App\Models\BipotPerSemester;
 use App\Models\StatusMahasiswa;
 use App\Models\StatusMasukMahasiswa;
 use App\Services\DataService;
@@ -30,9 +31,69 @@ class BipotPerAngkatanController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
+        if ($request->s === 'simpan') {
+            $programStudi = $request->program_studi;
+            $tahunAkademik = $request->tahun_akademik;
+
+            $kelas = $request->kelas;
+
+            $semester = [1, 2, 3, 4, 5, 6, 7, 8];
+            foreach ($kelas as $key => $value) {
+                $cek_bipot_pertahun = BipotPerAngkatan::where('kode_tahun', $tahunAkademik)
+                    ->where('kode_prodi', $programStudi)
+                    ->where('id_program_kuliah', $value)
+                    ->first();
+
+                if ($cek_bipot_pertahun) {
+                    $id_bipot_angkatan = $cek_bipot_pertahun->id;
+                    foreach ($semester as $keys => $values) {
+                        $cek_bipot_persemester = BipotPerSemester::where('id_bipot_angkatan', $id_bipot_angkatan)
+                            ->where('semester', $values)
+                            ->first();
+                        if (!$cek_bipot_persemester) {
+                            BipotPerSemester::insert([
+                                'id_bipot_angkatan' => $id_bipot_angkatan,
+                                'semester' => $values
+                            ]);
+                        }
+                    }
+                } else {
+                    $kodeTahun = $tahunAkademik;
+
+                    $tahunAwal = substr($kodeTahun, 0, 4);
+                    $tahunAkhir = $tahunAwal + 1;
+                    $namaTahun = $tahunAwal . '/' . $tahunAkhir;
+
+                    $cek_bipot_pertahun = BipotPerAngkatan::insertGetId([
+                        'kode_tahun' => $tahunAkademik,
+                        'nama_tahun' => $namaTahun,
+                        'id_program_kuliah' => $value,
+                        'kode_prodi' => $programStudi
+                    ]);
+                    $id_bipot_angkatan = $cek_bipot_pertahun;
+                    foreach ($semester as $keys => $values) {
+                        $cek_bipot_persemester = BipotPerSemester::where('id_bipot_angkatan', $id_bipot_angkatan)
+                            ->where('semester', $values)
+                            ->first();
+                        if (!$cek_bipot_persemester) {
+                            BipotPerSemester::insert([
+                                'id_bipot_angkatan' => $id_bipot_angkatan,
+                                'semester' => $values
+                            ]);
+                        }
+                    }
+                }
+            }
+            return redirect()->route('bipot-per-angkatan.index');
+        }
+
+        $d['prodi'] = DB::connection('db_siade')->table('master_program_studi')->get();
+        $d['tahun_akademik'] = DB::connection('db_siade')->table('master_tahun_akademik')->get();
+        $d['kelas'] = DB::connection('db_siade')->table('master_kelas_perkuliahan')->get();
+
+        return view('bipot-perangkatan.form', $d);
     }
 
     /**
@@ -72,7 +133,7 @@ class BipotPerAngkatanController extends Controller
         $id = Crypt::decrypt($id);
         $bipot = $service->bipot();
 
-        $d['bipot'] = $bipot[$id];
+        $d['bipot'] = $bipot[$id] ?? [];
         return view('bipot-perangkatan.show', $d);
     }
 

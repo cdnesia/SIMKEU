@@ -5,14 +5,7 @@
             <h6 class="mb-0">Data Biaya dan Potongan</h6>
             <div class="ms-auto">
                 @can($modul . '.create')
-                    <a href="{{ route($modul . '.create') }}" class="btn btn-sm btn-primary">Tambah Biaya dan Potongan</a>
-                @endcan
-                @can($modul . '.sync')
-                    <form action="{{ route($modul . '.sync') }}" method="POST" style="display:inline-block;">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-warning"><i class="bx bx-sync mr-1"></i>Sync
-                            Mahasiswa</button>
-                    </form>
+                    <a href="{{ route($modul . '.create') }}" class="btn btn-sm btn-primary">Generate Tahun Akademik dan Semester </a>
                 @endcan
             </div>
         </div>
