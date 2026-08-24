@@ -13,23 +13,28 @@ class BipotPerSemester extends Model
         'status_awal'      => 'array',
     ];
 
+    private static ?\Illuminate\Support\Collection $statusMahasiswaMap = null;
+    private static ?\Illuminate\Support\Collection $statusAwalMap = null;
+
     public function getStatusMahasiswaListAttribute()
     {
         $ids = is_array($this->status_mahasiswa)
             ? $this->status_mahasiswa
             : json_decode($this->status_mahasiswa, true) ?? [];
-        return StatusMahasiswa::whereIn('id', $ids)
-            ->pluck('nama_status_mahasiswa')
-            ->toArray();
+
+        self::$statusMahasiswaMap ??= StatusMahasiswa::pluck('nama_status_mahasiswa', 'id');
+
+        return self::$statusMahasiswaMap->only($ids)->values()->toArray();
     }
     public function getJenisMasukMahasiswaListAttribute()
     {
         $ids = is_array($this->status_awal)
             ? $this->status_awal
             : json_decode($this->status_awal, true) ?? [];
-        return StatusMasukMahasiswa::whereIn('id', $ids)
-            ->pluck('nama_jenis_pendaftaran')
-            ->toArray();
+
+        self::$statusAwalMap ??= StatusMasukMahasiswa::pluck('nama_jenis_pendaftaran', 'id');
+
+        return self::$statusAwalMap->only($ids)->values()->toArray();
     }
 
     public function bipot()

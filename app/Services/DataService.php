@@ -34,7 +34,7 @@ class DataService
         return $out;
     }
 
-    public function bipot($kodeTahun = null, $kelasId = null, $semester = null)
+    public function bipot($kodeProdi, $kodeTahun = null, $kelasId = null, $semester = null)
     {
         $raw = BipotPerAngkatan::with([
             'programKuliah',
@@ -45,6 +45,7 @@ class DataService
                 }
             },
         ])
+            ->where('kode_prodi', $kodeProdi)
             ->when($kodeTahun, function ($query) use ($kodeTahun) {
                 $query->where('kode_tahun', $kodeTahun);
             })
@@ -53,45 +54,41 @@ class DataService
             })
             ->get();
 
-        $result = $raw->groupBy('kode_prodi')->map(function ($prodiGroup) {
-            return $prodiGroup
-                ->groupBy('kode_tahun')
-                ->sortKeys()
-                ->map(function ($tahunGroup) {
+        $result = $raw->groupBy('kode_tahun')
+            ->sortKeys()
+            ->map(function ($tahunGroup) {
 
-                    return $tahunGroup->groupBy(function ($item) {
-                        return $item->programKuliah
-                            ? $item->programKuliah->id . '-' . $item->programKuliah->nama_program_perkuliahan
-                            : 'Tanpa Program';
-                    })
-                        ->sortKeys(SORT_NATURAL)
-                        ->map(function ($programGroup) {
-                            $semesterGrouped = [];
-                            foreach ($programGroup as $angkatan) {
-                                foreach ($angkatan->bipotSemester as $semester) {
-
-                                    $semesterKey = $semester->semester;
-
-                                    $semesterGrouped[$semesterKey][] = [
-                                        'id'    => $semester->id,
-                                        'nama_bipot' => $semester->bipot->nama_bipot ?? null,
-                                        'nominal'    => $semester->nominal,
-                                        'semester'   => $semester->semester,
-                                        'status_mahasiswa' => $semester->status_mahasiswa_list,
-                                        'jenis_masuk' => $semester->jenis_masuk_mahasiswa_list,
-                                    ];
-                                }
-                            }
-
-                            ksort($semesterGrouped);
-
-                            return $semesterGrouped;
-                        })
-                        ->filter(fn($semesterGrouped) => count($semesterGrouped) > 0);
+                return $tahunGroup->groupBy(function ($item) {
+                    return $item->programKuliah
+                        ? $item->programKuliah->id . '-' . $item->programKuliah->nama_program_perkuliahan
+                        : 'Tanpa Program';
                 })
-                ->filter(fn($programGroup) => count($programGroup) > 0);
-        })
-            ->filter(fn($tahunGroup) => count($tahunGroup) > 0);
+                    ->sortKeys(SORT_NATURAL)
+                    ->map(function ($programGroup) {
+                        $semesterGrouped = [];
+                        foreach ($programGroup as $angkatan) {
+                            foreach ($angkatan->bipotSemester as $semester) {
+
+                                $semesterKey = $semester->semester;
+
+                                $semesterGrouped[$semesterKey][] = [
+                                    'id'    => $semester->id,
+                                    'nama_bipot' => $semester->bipot->nama_bipot ?? null,
+                                    'nominal'    => $semester->nominal,
+                                    'semester'   => $semester->semester,
+                                    'status_mahasiswa' => $semester->status_mahasiswa_list,
+                                    'jenis_masuk' => $semester->jenis_masuk_mahasiswa_list,
+                                ];
+                            }
+                        }
+
+                        ksort($semesterGrouped);
+
+                        return $semesterGrouped;
+                    })
+                    ->filter(fn($semesterGrouped) => count($semesterGrouped) > 0);
+            })
+            ->filter(fn($programGroup) => count($programGroup) > 0);
 
         return $result->toArray();
     }
