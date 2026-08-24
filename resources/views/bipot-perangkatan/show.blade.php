@@ -39,6 +39,10 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="col-md-4">
+                    <a href="{{ url()->current() }}" class="btn btn-sm btn-warning"><i
+                            class="bx bx-reset me-0"></i> Reset Filter</a>
+                </div>
             </form>
         </div>
     </div>
