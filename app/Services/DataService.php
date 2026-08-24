@@ -34,12 +34,24 @@ class DataService
         return $out;
     }
 
-    public function bipot()
+    public function bipot($kodeTahun = null, $kelasId = null, $semester = null)
     {
         $raw = BipotPerAngkatan::with([
             'programKuliah',
-            'bipotSemester.bipot',
-        ])->get();
+            'bipotSemester' => function ($query) use ($semester) {
+                $query->with('bipot');
+                if ($semester) {
+                    $query->where('semester', $semester);
+                }
+            },
+        ])
+            ->when($kodeTahun, function ($query) use ($kodeTahun) {
+                $query->where('kode_tahun', $kodeTahun);
+            })
+            ->when($kelasId, function ($query) use ($kelasId) {
+                $query->where('id_program_kuliah', $kelasId);
+            })
+            ->get();
 
         $result = $raw->groupBy('kode_prodi')->map(function ($prodiGroup) {
             return $prodiGroup
@@ -74,9 +86,12 @@ class DataService
                             ksort($semesterGrouped);
 
                             return $semesterGrouped;
-                        });
-                });
-        });
+                        })
+                        ->filter(fn($semesterGrouped) => count($semesterGrouped) > 0);
+                })
+                ->filter(fn($programGroup) => count($programGroup) > 0);
+        })
+            ->filter(fn($tahunGroup) => count($tahunGroup) > 0);
 
         return $result->toArray();
     }

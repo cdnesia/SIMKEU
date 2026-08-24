@@ -1,10 +1,52 @@
 @extends('layouts.app')
 @section('content')
-    {{-- <div class="card">
-        <div class="card-header d-flex align-items-center">
-            <h6 class="mb-0">Tahun Angkatan</h6>
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" action="{{ url()->current() }}" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label mb-1">Tahun Akademik</label>
+                    <select name="tahun_akademik" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Semua Tahun Akademik --</option>
+                        @foreach ($tahun_akademik_list as $ta)
+                            <option value="{{ $ta->kode_tahun }}"
+                                {{ (string) $tahun_akademik_terpilih === (string) $ta->kode_tahun ? 'selected' : '' }}>
+                                {{ $ta->nama_tahun }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label mb-1">Kelas</label>
+                    <select name="kelas" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Semua Kelas --</option>
+                        @foreach ($kelas_list as $kl)
+                            <option value="{{ $kl->id }}"
+                                {{ (string) $kelas_terpilih === (string) $kl->id ? 'selected' : '' }}>
+                                {{ $kl->nama_program_perkuliahan }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label mb-1">Semester</label>
+                    <select name="semester" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Semua Semester --</option>
+                        @foreach ($semester_list as $sm)
+                            <option value="{{ $sm }}"
+                                {{ (string) $semester_terpilih === (string) $sm ? 'selected' : '' }}>
+                                Semester {{ $sm }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
         </div>
-    </div> --}}
+    </div>
+
+    @if (count($bipot) === 0)
+        <div class="alert alert-warning">Tidak ada data BIPOT untuk tahun akademik yang dipilih.</div>
+    @endif
+
     @foreach ($bipot as $t => $item)
         <div class="card">
             <div class="card-header d-flex align-items-center bg-success">

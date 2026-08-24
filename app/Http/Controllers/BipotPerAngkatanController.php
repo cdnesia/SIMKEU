@@ -128,12 +128,35 @@ class BipotPerAngkatanController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(DataService $service, $id)
+    public function show(Request $request, DataService $service, $id)
     {
         $id = Crypt::decrypt($id);
-        $bipot = $service->bipot();
+        $tahunAkademik = $request->query('tahun_akademik');
+        $kelasId = $request->query('kelas');
+        $semester = $request->query('semester');
+
+        $bipot = $service->bipot($tahunAkademik, $kelasId, $semester);
 
         $d['bipot'] = $bipot[$id] ?? [];
+        $d['tahun_akademik_list'] = BipotPerAngkatan::where('kode_prodi', $id)
+            ->select('kode_tahun', 'nama_tahun')
+            ->distinct()
+            ->orderBy('kode_tahun')
+            ->get();
+        $d['kelas_list'] = BipotPerAngkatan::where('kode_prodi', $id)
+            ->with('programKuliah')
+            ->get()
+            ->pluck('programKuliah')
+            ->filter()
+            ->unique('id')
+            ->sortBy('nama_program_perkuliahan')
+            ->values();
+        $d['semester_list'] = range(1, 8);
+
+        $d['tahun_akademik_terpilih'] = $tahunAkademik;
+        $d['kelas_terpilih'] = $kelasId;
+        $d['semester_terpilih'] = $semester;
+
         return view('bipot-perangkatan.show', $d);
     }
 
