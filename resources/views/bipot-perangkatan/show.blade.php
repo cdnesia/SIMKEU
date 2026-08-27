@@ -68,8 +68,13 @@
                         <h6 class="mb-0">Semester {{ $c }}</h6>
                         <div class="ms-auto">
                             <button data-kode-tahun="{{ $t }}" data-kelas-id="{{ $parts[0] }}"
-                                data-semester="{{ $c }}" class="btn btn-sm btn-success btnAdd"><i
+                                data-semester="{{ $c }}" class="btn btn-sm btn-success btnAdd" title="Tambah BIPOT"><i
                                     class="bx bx-comment-add me-0"></i></button>
+                            @if (count($d) > 0)
+                                <button data-kode-tahun="{{ $t }}" data-kelas-id="{{ $parts[0] }}"
+                                    data-semester="{{ $c }}" class="btn btn-sm btn-primary btnCopy"
+                                    title="Salin ke semester lain"><i class="bx bx-copy me-0"></i></button>
+                            @endif
                         </div>
                     </div>
                     <div class="card-body">
@@ -197,6 +202,49 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Copy Semester -->
+    <div class="modal fade" id="modalCopyBipot" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formCopyBipot" class="row g-3">
+                    @csrf
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Salin Data BIPOT</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <input type="hidden" name="kode_tahun" id="copy_kode_tahun">
+                        <input type="hidden" name="kelas_id" id="copy_kelas_id">
+                        <input type="hidden" name="source_semester" id="copy_source_semester">
+                        <input type="hidden" name="kode_prodi" value="{{ request()->segment(2) }}">
+
+                        <div class="col-md-12">
+                            <p class="mb-1">Salin semua data BIPOT dari <strong id="copy_source_label"></strong> ke
+                                semester tujuan:</p>
+                            <div id="checkbox_target_semester"></div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="overwrite" value="1"
+                                    id="copy_overwrite">
+                                <label class="form-check-label" for="copy_overwrite">
+                                    Timpa data yang sudah ada di semester tujuan
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Salin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 @push('css')
     <link href="{{ asset('') }}assets/plugins/datatable/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
@@ -310,6 +358,52 @@
                             location.reload();
                         } else {
                             alert(res.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Terjadi kesalahan sistem.');
+                    }
+                });
+            });
+
+            const allSemesters = @json($semester_list);
+
+            $(document).on('click', '.btnCopy', function() {
+                let sourceSemester = $(this).data('semester');
+
+                $('#formCopyBipot')[0].reset();
+                $('#copy_kode_tahun').val($(this).data('kode-tahun'));
+                $('#copy_kelas_id').val($(this).data('kelas-id'));
+                $('#copy_source_semester').val(sourceSemester);
+                $('#copy_source_label').text('Semester ' + sourceSemester);
+
+                $('#checkbox_target_semester').empty();
+                $.each(allSemesters, function(i, sm) {
+                    if (sm == sourceSemester) return;
+                    $('#checkbox_target_semester').append(`
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" value="${sm}"
+                        name="target_semester[]" id="target_semester_${sm}">
+                    <label class="form-check-label" for="target_semester_${sm}">Semester ${sm}</label>
+                </div>
+            `);
+                });
+
+                $('#modalCopyBipot').modal('show');
+            });
+
+            $('#formCopyBipot').submit(function(e) {
+                e.preventDefault();
+
+                $.ajax({
+                    url: '{{ route('bipot-per-angkatan.copy-semester') }}',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(res) {
+                        alert(res.message);
+                        if (res.success) {
+                            $('#modalCopyBipot').modal('hide');
+                            location.reload();
                         }
                     },
                     error: function(xhr) {

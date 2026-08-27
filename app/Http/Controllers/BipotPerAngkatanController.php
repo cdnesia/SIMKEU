@@ -228,6 +228,101 @@ class BipotPerAngkatanController extends Controller
         }
     }
 
+    /**
+     * Copy all BIPOT items from one semester to one or more target semesters
+     * within the same angkatan (tahun akademik + kelas), so the user doesn't
+     * have to re-enter the same items for every semester.
+     */
+    public function copySemester(Request $request)
+    {
+        $kode_prodi = Crypt::decrypt($request->kode_prodi);
+        $sourceSemester = $request->source_semester;
+        $targetSemesters = array_filter((array) $request->target_semester, fn($s) => $s != $sourceSemester);
+        $overwrite = $request->boolean('overwrite');
+
+        $angkatan = BipotPerAngkatan::where('kode_tahun', $request->kode_tahun)
+            ->where('kode_prodi', $kode_prodi)
+            ->where('id_program_kuliah', $request->kelas_id)
+            ->first();
+
+        if (!$angkatan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data angkatan tidak ditemukan.',
+            ]);
+        }
+
+        $sourceItems = BipotPerSemester::where('id_bipot_angkatan', $angkatan->id)
+            ->where('semester', $sourceSemester)
+            ->get();
+
+        if ($sourceItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Semester sumber tidak memiliki data BIPOT untuk disalin.',
+            ]);
+        }
+
+        if (empty($targetSemesters)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pilih minimal satu semester tujuan.',
+            ]);
+        }
+
+        $copied = [];
+        $skipped = [];
+
+        DB::transaction(function () use ($angkatan, $sourceItems, $targetSemesters, $overwrite, &$copied, &$skipped) {
+            foreach ($targetSemesters as $targetSemester) {
+                $hasExisting = BipotPerSemester::where('id_bipot_angkatan', $angkatan->id)
+                    ->where('semester', $targetSemester)
+                    ->exists();
+
+                if ($hasExisting && !$overwrite) {
+                    $skipped[] = $targetSemester;
+                    continue;
+                }
+
+                if ($hasExisting) {
+                    BipotPerSemester::where('id_bipot_angkatan', $angkatan->id)
+                        ->where('semester', $targetSemester)
+                        ->delete();
+                }
+
+                foreach ($sourceItems as $item) {
+                    DB::table('master_bipot_per_semester')->insert([
+                        'id_bipot_angkatan' => $angkatan->id,
+                        'id_bipot' => $item->id_bipot,
+                        'semester' => $targetSemester,
+                        'nominal' => $item->nominal,
+                        'status_awal' => json_encode($item->status_awal ?? []),
+                        'status_mahasiswa' => json_encode($item->status_mahasiswa ?? []),
+                    ]);
+                }
+
+                $copied[] = $targetSemester;
+            }
+        });
+
+        if (empty($copied)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Semester tujuan sudah memiliki data. Centang "Timpa data" untuk menimpa.',
+            ]);
+        }
+
+        $message = 'Data BIPOT berhasil disalin ke semester ' . implode(', ', $copied) . '.';
+        if (!empty($skipped)) {
+            $message .= ' Semester ' . implode(', ', $skipped) . ' dilewati karena sudah memiliki data.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+        ]);
+    }
+
     public function list_bipot()
     {
         return response()->json([

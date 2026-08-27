@@ -31,6 +31,7 @@ Route::middleware(['auth', 'checkPermission'])->group(function () {
 
     Route::get('bipot/list-bipot', [BipotPerAngkatanController::class, 'list_bipot'])->name('bipot.list-bipot');
     Route::resource('bipot', BipotController::class)->except('show');
+    Route::post('bipot-per-angkatan/copy-semester', [BipotPerAngkatanController::class, 'copySemester'])->name('bipot-per-angkatan.copy-semester');
     Route::resource('bipot-per-angkatan', BipotPerAngkatanController::class);
 
     Route::resource('jadwal-pembayaran', JadwalPembayaranController::class)->except('show');
