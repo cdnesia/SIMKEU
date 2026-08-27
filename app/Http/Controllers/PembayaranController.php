@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\PembayaranExport;
 use App\Models\Bipot;
 use App\Services\DataService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 
 class PembayaranController extends Controller
@@ -16,8 +18,17 @@ class PembayaranController extends Controller
     {
         view()->share('modul', $this->modul);
     }
-    public function index()
+
+    /**
+     * Build the pivoted (tahun -> npm -> per-bipot nominal) payment dataset,
+     * optionally filtered by tahun akademik and/or a single BIPOT type.
+     * Shared by index() (screen) and export() (Excel) so both stay in sync.
+     */
+    private function filteredPembayaran(Request $request)
     {
+        $tahunAkademik = $request->query('tahun_akademik');
+        $bipotId = $request->query('bipot');
+
         $dataPembayaranRaw = DB::table('tbl_pembayaran_mahasiswa')
             ->select(
                 'tahun_akademik',
@@ -28,15 +39,18 @@ class PembayaranController extends Controller
                 'bank',
                 DB::raw('SUM(nominal) as nominal')
             )
-            // ->where('tahun_akademik', '20242')
+            ->when($tahunAkademik, fn($q, $v) => $q->where('tahun_akademik', $v))
+            ->when($bipotId, fn($q, $v) => $q->where('id_bipot', $v))
             ->groupBy('tahun_akademik', 'npm', 'id_bipot', 'nama_bipot')
             ->get();
 
         $masterBipot = Bipot::select('id as id_bipot', 'nama_bipot')
+            ->when($bipotId, fn($q, $v) => $q->where('id', $v))
+            ->orderBy('urutan')
             ->get()
             ->keyBy('id_bipot');
 
-        $data = $dataPembayaranRaw
+        $pembayaran = $dataPembayaranRaw
             ->groupBy('tahun_akademik')
             ->sortKeysDesc()
             ->map(function ($tahunGroup) use ($masterBipot) {
@@ -64,8 +78,36 @@ class PembayaranController extends Controller
                     });
             });
 
-        $d['pembayaran'] = $data;
+        $firstTahun = $pembayaran->first();
+        $firstNpm = $firstTahun ? collect($firstTahun)->first() : null;
+        $firstDetail = $firstNpm['detail'] ?? $masterBipot->map(fn($b) => ['nama_bipot' => $b->nama_bipot])->values();
+
+        return [$pembayaran, $firstDetail];
+    }
+
+    public function index(Request $request)
+    {
+        [$pembayaran, $firstDetail] = $this->filteredPembayaran($request);
+
+        $d['pembayaran'] = $pembayaran;
+        $d['firstDetail'] = $firstDetail;
+        $d['bipot_list'] = Bipot::orderBy('urutan')->get();
+        $d['tahun_akademik_list'] = DB::table('tbl_pembayaran_mahasiswa')
+            ->select('tahun_akademik')
+            ->distinct()
+            ->orderByDesc('tahun_akademik')
+            ->pluck('tahun_akademik');
+        $d['tahun_akademik_terpilih'] = $request->query('tahun_akademik');
+        $d['bipot_terpilih'] = $request->query('bipot');
+
         return view('pembayaran.view', $d);
+    }
+
+    public function export(Request $request)
+    {
+        [$pembayaran, $firstDetail] = $this->filteredPembayaran($request);
+
+        return Excel::download(new PembayaranExport($pembayaran, $firstDetail), 'data-pembayaran.xlsx');
     }
     public function create() {}
     public function edit($id, Request $request, DataService $service)
