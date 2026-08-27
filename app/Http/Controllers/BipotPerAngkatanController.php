@@ -136,6 +136,7 @@ class BipotPerAngkatanController extends Controller
         $kelasId = $request->query('kelas');
         $semester = $request->query('semester');
 
+        $d['prodi_info'] = $service->prodi($id)->first();
         $d['bipot'] = $service->bipot($id, $tahunAkademik, $kelasId, $semester);
         $d['tahun_akademik_list'] = BipotPerAngkatan::where('kode_prodi', $id)
             ->select('kode_tahun', 'nama_tahun')
@@ -156,6 +157,23 @@ class BipotPerAngkatanController extends Controller
         $d['tahun_akademik_terpilih'] = $tahunAkademik;
         $d['kelas_terpilih'] = $kelasId;
         $d['semester_terpilih'] = $semester;
+
+        // Master data for the "copy to another prodi/kelas/tahun" target selects.
+        $d['kode_prodi_saat_ini'] = $id;
+        $d['prodi_master'] = DB::connection('db_siade')->table('master_program_studi')->orderBy('nama_program_studi_idn')->get();
+        // Angkatan is only ever the Ganjil (odd) intake term — master_tahun_akademik has a
+        // separate row per term (Ganjil ends in "1", Genap in "2"), so only Ganjil rows are
+        // real angkatan years; shown as "YYYY/YYYY+1" to match the filter dropdown above.
+        $d['tahun_akademik_master'] = DB::connection('db_siade')->table('master_tahun_akademik')
+            ->where('kode_tahun_akademik', 'like', '%1')
+            ->orderBy('kode_tahun_akademik', 'desc')
+            ->get()
+            ->map(function ($ta) {
+                $tahunAwal = substr($ta->kode_tahun_akademik, 0, 4);
+                $ta->nama_tahun = $tahunAwal . '/' . ($tahunAwal + 1);
+                return $ta;
+            });
+        $d['kelas_master'] = DB::connection('db_siade')->table('master_kelas_perkuliahan')->orderBy('nama_program_perkuliahan')->get();
 
         return view('bipot-perangkatan.show', $d);
     }
@@ -229,31 +247,43 @@ class BipotPerAngkatanController extends Controller
     }
 
     /**
-     * Copy all BIPOT items from one semester to one or more target semesters
-     * within the same angkatan (tahun akademik + kelas), so the user doesn't
-     * have to re-enter the same items for every semester.
+     * Copy all BIPOT items from one (prodi, kelas, tahun akademik, semester)
+     * source to one or more target semesters — possibly in a different prodi,
+     * kelas, and/or tahun akademik — so the user doesn't have to re-enter the
+     * same items by hand. If the target angkatan doesn't exist yet, it (and
+     * its 8 empty semester slots) is created first, mirroring create().
      */
-    public function copySemester(Request $request)
+    public function copySemester(Request $request, DataService $service)
     {
+        $request->validate([
+            'kode_tahun' => 'required|string',
+            'kelas_id' => 'required',
+            'source_semester' => 'required|integer|min:1|max:8',
+            'target_kode_prodi' => 'required|string',
+            'target_kode_tahun' => 'required|string',
+            'target_kelas_id' => 'required',
+            'target_semester' => 'required|array|min:1',
+            'target_semester.*' => 'integer|min:1|max:8',
+        ]);
+
         $kode_prodi = Crypt::decrypt($request->kode_prodi);
-        $sourceSemester = $request->source_semester;
-        $targetSemesters = array_filter((array) $request->target_semester, fn($s) => $s != $sourceSemester);
         $overwrite = $request->boolean('overwrite');
 
-        $angkatan = BipotPerAngkatan::where('kode_tahun', $request->kode_tahun)
+        $sourceAngkatan = BipotPerAngkatan::where('kode_tahun', $request->kode_tahun)
             ->where('kode_prodi', $kode_prodi)
             ->where('id_program_kuliah', $request->kelas_id)
             ->first();
 
-        if (!$angkatan) {
+        if (!$sourceAngkatan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data angkatan tidak ditemukan.',
+                'message' => 'Data angkatan sumber tidak ditemukan.',
             ]);
         }
 
-        $sourceItems = BipotPerSemester::where('id_bipot_angkatan', $angkatan->id)
-            ->where('semester', $sourceSemester)
+        $sourceItems = BipotPerSemester::where('id_bipot_angkatan', $sourceAngkatan->id)
+            ->where('semester', $request->source_semester)
+            ->whereNotNull('id_bipot')
             ->get();
 
         if ($sourceItems->isEmpty()) {
@@ -263,20 +293,84 @@ class BipotPerAngkatanController extends Controller
             ]);
         }
 
+        $targetKodeProdi = $request->target_kode_prodi;
+        $targetKodeTahun = $request->target_kode_tahun;
+        $targetKelasId = $request->target_kelas_id;
+
+        $targetSemesters = array_values(array_unique(array_map('intval', $request->target_semester)));
+
+        // If target is the exact same angkatan as the source, copying the
+        // source semester onto itself is a meaningless no-op — drop it.
+        $isSameAngkatan = (string) $targetKodeProdi === (string) $kode_prodi
+            && (string) $targetKodeTahun === (string) $request->kode_tahun
+            && (string) $targetKelasId === (string) $request->kelas_id;
+
+        if ($isSameAngkatan) {
+            $targetSemesters = array_values(array_filter(
+                $targetSemesters,
+                fn($s) => $s != $request->source_semester
+            ));
+        }
+
         if (empty($targetSemesters)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pilih minimal satu semester tujuan.',
+                'message' => 'Pilih minimal satu semester tujuan yang valid.',
             ]);
         }
 
         $copied = [];
         $skipped = [];
 
-        DB::transaction(function () use ($angkatan, $sourceItems, $targetSemesters, $overwrite, &$copied, &$skipped) {
+        DB::transaction(function () use (
+            $targetKodeProdi,
+            $targetKodeTahun,
+            $targetKelasId,
+            $targetSemesters,
+            $sourceItems,
+            $overwrite,
+            &$copied,
+            &$skipped
+        ) {
+            $targetAngkatan = BipotPerAngkatan::where('kode_tahun', $targetKodeTahun)
+                ->where('kode_prodi', $targetKodeProdi)
+                ->where('id_program_kuliah', $targetKelasId)
+                ->first();
+
+            if ($targetAngkatan) {
+                $targetAngkatanId = $targetAngkatan->id;
+            } else {
+                $tahunAwal = substr($targetKodeTahun, 0, 4);
+                $tahunAkhir = $tahunAwal + 1;
+                $namaTahun = $tahunAwal . '/' . $tahunAkhir;
+
+                $targetAngkatanId = BipotPerAngkatan::insertGetId([
+                    'kode_tahun' => $targetKodeTahun,
+                    'nama_tahun' => $namaTahun,
+                    'id_program_kuliah' => $targetKelasId,
+                    'kode_prodi' => $targetKodeProdi,
+                ]);
+
+                foreach (range(1, 8) as $sm) {
+                    BipotPerSemester::insert([
+                        'id_bipot_angkatan' => $targetAngkatanId,
+                        'semester' => $sm,
+                    ]);
+                }
+            }
+
             foreach ($targetSemesters as $targetSemester) {
-                $hasExisting = BipotPerSemester::where('id_bipot_angkatan', $angkatan->id)
+                // Drop the empty placeholder row (id_bipot NULL) created by
+                // "Generate Tahun Akademik dan Semester" / above, if any — it
+                // holds no real data and would otherwise show as a blank row.
+                BipotPerSemester::where('id_bipot_angkatan', $targetAngkatanId)
                     ->where('semester', $targetSemester)
+                    ->whereNull('id_bipot')
+                    ->delete();
+
+                $hasExisting = BipotPerSemester::where('id_bipot_angkatan', $targetAngkatanId)
+                    ->where('semester', $targetSemester)
+                    ->whereNotNull('id_bipot')
                     ->exists();
 
                 if ($hasExisting && !$overwrite) {
@@ -285,14 +379,14 @@ class BipotPerAngkatanController extends Controller
                 }
 
                 if ($hasExisting) {
-                    BipotPerSemester::where('id_bipot_angkatan', $angkatan->id)
+                    BipotPerSemester::where('id_bipot_angkatan', $targetAngkatanId)
                         ->where('semester', $targetSemester)
                         ->delete();
                 }
 
                 foreach ($sourceItems as $item) {
                     DB::table('master_bipot_per_semester')->insert([
-                        'id_bipot_angkatan' => $angkatan->id,
+                        'id_bipot_angkatan' => $targetAngkatanId,
                         'id_bipot' => $item->id_bipot,
                         'semester' => $targetSemester,
                         'nominal' => $item->nominal,
@@ -312,7 +406,14 @@ class BipotPerAngkatanController extends Controller
             ]);
         }
 
-        $message = 'Data BIPOT berhasil disalin ke semester ' . implode(', ', $copied) . '.';
+        $targetProdiNama = $service->prodi($targetKodeProdi)->value('nama_program_studi_idn') ?? $targetKodeProdi;
+        $targetKelasNama = $service->kelas($targetKelasId)->value('nama_program_perkuliahan') ?? $targetKelasId;
+        $targetTahunNama = DB::connection('db_siade')->table('master_tahun_akademik')
+            ->where('kode_tahun_akademik', $targetKodeTahun)
+            ->value('nama_tahun_akademik') ?? $targetKodeTahun;
+
+        $message = "Data BIPOT berhasil disalin ke {$targetProdiNama} - {$targetKelasNama} - {$targetTahunNama}, semester "
+            . implode(', ', $copied) . '.';
         if (!empty($skipped)) {
             $message .= ' Semester ' . implode(', ', $skipped) . ' dilewati karena sudah memiliki data.';
         }

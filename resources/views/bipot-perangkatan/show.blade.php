@@ -1,12 +1,27 @@
 @extends('layouts.app')
 @section('content')
     <div class="card">
+        <div class="card-header d-flex align-items-center flex-wrap gap-3">
+            <span class="d-inline-flex align-items-center justify-content-center bg-light-primary text-primary rounded-circle flex-shrink-0"
+                style="width:48px;height:48px;">
+                <i class="bx bx-book-content fs-4"></i>
+            </span>
+            <div class="me-auto">
+                <small class="text-muted text-uppercase">Data Biaya dan Potongan</small>
+                <h5 class="mb-0 fw-bold">{{ $prodi_info->nama_program_studi_idn ?? '-' }}</h5>
+                @if (!empty($prodi_info->nama_fakultas_idn))
+                    <span class="text-muted small">{{ $prodi_info->nama_fakultas_idn }}</span>
+                @endif
+            </div>
+            <a href="{{ route($modul . '.index') }}" class="btn btn-sm btn-warning"><i
+                    class="bx bx-arrow-back me-0"></i> Kembali</a>
+        </div>
         <div class="card-body">
             <form method="GET" action="{{ url()->current() }}" class="row g-2 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label mb-1">Tahun Akademik</label>
+                    <label class="form-label mb-1">Tahun Angkatan</label>
                     <select name="tahun_akademik" class="form-select" onchange="this.form.submit()">
-                        <option value="">-- Semua Tahun Akademik --</option>
+                        <option value="">-- Semua Tahun Angkatan --</option>
                         @foreach ($tahun_akademik_list as $ta)
                             <option value="{{ $ta->kode_tahun }}"
                                 {{ (string) $tahun_akademik_terpilih === (string) $ta->kode_tahun ? 'selected' : '' }}>
@@ -48,7 +63,7 @@
     </div>
 
     @if (count($bipot) === 0)
-        <div class="alert alert-warning">Tidak ada data BIPOT untuk tahun akademik yang dipilih.</div>
+        <div class="alert alert-warning">Tidak ada data BIPOT untuk tahun angkatan yang dipilih.</div>
     @endif
 
     @foreach ($bipot as $t => $item)
@@ -218,9 +233,50 @@
                         <input type="hidden" name="kode_prodi" value="{{ request()->segment(2) }}">
 
                         <div class="mb-2">
-                            <p class="mb-1">Salin semua data BIPOT dari <strong id="copy_source_label"></strong> ke
-                                semester tujuan (kelas yang sama):</p>
+                            <p class="mb-1">Salin semua data BIPOT dari <strong id="copy_source_label"></strong> ke:
+                            </p>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="target_kode_prodi" class="form-label">Program Studi Tujuan</label>
+                            <select name="target_kode_prodi" id="target_kode_prodi" class="form-select select2"
+                                required data-placeholder="-- Pilih Program Studi --">
+                                <option value=""></option>
+                                @foreach ($prodi_master as $p)
+                                    <option value="{{ $p->kode_program_studi }}">{{ $p->nama_program_studi_idn }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="target_kode_tahun" class="form-label">Tahun Angkatan Tujuan</label>
+                            <select name="target_kode_tahun" id="target_kode_tahun" class="form-select select2"
+                                required data-placeholder="-- Pilih Tahun Angkatan --">
+                                <option value=""></option>
+                                @foreach ($tahun_akademik_master as $ta)
+                                    <option value="{{ $ta->kode_tahun_akademik }}">{{ $ta->nama_tahun }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="target_kelas_id" class="form-label">Kelas Tujuan</label>
+                            <select name="target_kelas_id" id="target_kelas_id" class="form-select select2" required
+                                data-placeholder="-- Pilih Kelas --">
+                                <option value=""></option>
+                                @foreach ($kelas_master as $kl)
+                                    <option value="{{ $kl->id }}">{{ $kl->nama_program_perkuliahan }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Semester Tujuan</label>
                             <div id="checkbox_target_semester"></div>
+                            <div class="form-text">Semester sumber otomatis disembunyikan jika program studi, tahun
+                                akademik, dan kelas tujuan sama persis dengan sumber.</div>
                         </div>
 
                         <div class="mb-2">
@@ -363,20 +419,17 @@
             });
 
             const allSemesters = @json($semester_list);
+            const kodeProdiSaatIni = @json($kode_prodi_saat_ini);
 
-            $(document).on('click', '.btnCopy', function() {
-                let sourceSemester = $(this).data('semester');
-                let kelasNama = $(this).data('kelas-nama');
-
-                $('#formCopyBipot')[0].reset();
-                $('#copy_kode_tahun').val($(this).data('kode-tahun'));
-                $('#copy_kelas_id').val($(this).data('kelas-id'));
-                $('#copy_source_semester').val(sourceSemester);
-                $('#copy_source_label').text('Kelas ' + kelasNama + ' - Semester ' + sourceSemester);
+            function renderTargetSemesterCheckboxes() {
+                let sourceSemester = $('#copy_source_semester').val();
+                let isSameAngkatan = String($('#target_kode_prodi').val()) === String(kodeProdiSaatIni) &&
+                    String($('#target_kode_tahun').val()) === String($('#copy_kode_tahun').val()) &&
+                    String($('#target_kelas_id').val()) === String($('#copy_kelas_id').val());
 
                 $('#checkbox_target_semester').empty();
                 $.each(allSemesters, function(i, sm) {
-                    if (sm == sourceSemester) return;
+                    if (isSameAngkatan && sm == sourceSemester) return;
                     $('#checkbox_target_semester').append(`
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="checkbox" value="${sm}"
@@ -385,6 +438,29 @@
                 </div>
             `);
                 });
+            }
+
+            $(document).on('change', '#target_kode_prodi, #target_kode_tahun, #target_kelas_id', function() {
+                renderTargetSemesterCheckboxes();
+            });
+
+            $(document).on('click', '.btnCopy', function() {
+                let sourceSemester = $(this).data('semester');
+                let kelasNama = $(this).data('kelas-nama');
+                let kodeTahun = $(this).data('kode-tahun');
+                let kelasId = $(this).data('kelas-id');
+
+                $('#formCopyBipot')[0].reset();
+                $('#copy_kode_tahun').val(kodeTahun);
+                $('#copy_kelas_id').val(kelasId);
+                $('#copy_source_semester').val(sourceSemester);
+                $('#copy_source_label').text('Kelas ' + kelasNama + ' - Semester ' + sourceSemester);
+
+                $('#target_kode_prodi').val(kodeProdiSaatIni).trigger('change');
+                $('#target_kode_tahun').val(String(kodeTahun)).trigger('change');
+                $('#target_kelas_id').val(String(kelasId)).trigger('change');
+
+                renderTargetSemesterCheckboxes();
 
                 $('#modalCopyBipot').modal('show');
             });
@@ -404,7 +480,11 @@
                         }
                     },
                     error: function(xhr) {
-                        alert('Terjadi kesalahan sistem.');
+                        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            alert(Object.values(xhr.responseJSON.errors).flat().join('\n'));
+                        } else {
+                            alert('Terjadi kesalahan sistem.');
+                        }
                     }
                 });
             });
