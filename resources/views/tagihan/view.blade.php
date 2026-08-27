@@ -5,7 +5,8 @@
             <h6 class="mb-0">Data Tagihan Mahasiswa</h6>
             <div class="ms-auto">
                 @can($modul . '.create')
-                    <a href="{{ route($modul . '.create') }}?t=manual" class="btn btn-sm btn-primary">Tambah Manual</a>
+                    <a href="{{ route('tagihan.create', ['t' => 'manual', 'back' => request()->route()->getName()]) }}"
+                        class="btn btn-sm btn-primary">Tambah Manual</a>
                     <a href="javascript::void(0)" class="btn btn-sm btn-primary" data-bs-toggle="modal"
                         data-bs-target="#addTagihan">Tambah Otomatis</a>
                 @endcan

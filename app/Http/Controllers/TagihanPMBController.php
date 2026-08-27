@@ -79,8 +79,8 @@ class TagihanPMBController extends Controller
                     $id = Crypt::encrypt($item->id);
 
                     return '
-                    <a href="' . route('tagihan.show', $id) . '" class="btn btn-success btn-sm btn-flagging pb-2"><i class="bx bx-flag me-0"></i></a>
-                    <a href="' . route('tagihan.edit', $id) . '" class="btn btn-warning btn-sm btn-edit pb-2"><i class="bx bx-message-square-edit me-0"></i></a>
+                    <a href="' . route('tagihan.show', [$id, 'back' => 'tagihan-pmb.index']) . '" class="btn btn-success btn-sm btn-flagging pb-2"><i class="bx bx-flag me-0"></i></a>
+                    <a href="' . route('tagihan.edit', [$id, 'back' => 'tagihan-pmb.index']) . '" class="btn btn-warning btn-sm btn-edit pb-2"><i class="bx bx-message-square-edit me-0"></i></a>
                     <button data-id="' . $id . '" class="btn btn-danger btn-sm btn-delete pb-2"><i class="bx bx-message-square-x me-0"></i></button>
                     ';
                 })

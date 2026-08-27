@@ -6,6 +6,7 @@
     <form class="row g-3" method="POST" action="{{ route('tagihan.update', Crypt::encrypt($tagihan->id)) }}">
         @csrf
         @method('PUT')
+        <input type="hidden" name="back" value="{{ request('back', 'tagihan.index') }}">
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">
@@ -155,7 +156,8 @@
                     <button type="submit" class="btn btn-success btn-sm">
                         Update
                     </button>
-                    <a href="{{ route('tagihan.index') }}" class="btn btn-sm btn-warning">Kembali</a>
+                    <a href="{{ route(in_array(request('back'), ['tagihan.index', 'tagihan-pmb.index']) ? request('back') : 'tagihan.index') }}"
+                        class="btn btn-sm btn-warning">Kembali</a>
                 </div>
 
             </div>

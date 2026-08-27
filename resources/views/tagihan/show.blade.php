@@ -44,7 +44,8 @@
                 <div class="card-header d-flex align-items-center">
                     <h6 class="mb-0">Detail Biaya dan Potongan</h6>
                     <div class="ms-auto">
-                        <a href="{{ route('tagihan.index') }}" class="btn btn-warning btn-sm">Kembali</a>
+                        <a href="{{ route(in_array(request('back'), ['tagihan.index', 'tagihan-pmb.index']) ? request('back') : 'tagihan.index') }}"
+                            class="btn btn-warning btn-sm">Kembali</a>
                     </div>
                 </div>
                 <div class="card-body">

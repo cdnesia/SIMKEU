@@ -81,8 +81,8 @@ class TagihanController extends Controller
                     $id = Crypt::encrypt($item->id);
 
                     return '
-                    <a href="' . route('tagihan.show', $id) . '" class="btn btn-success btn-sm btn-flagging pb-2"><i class="bx bx-flag me-0"></i></a>
-                    <a href="' . route('tagihan.edit', $id) . '" class="btn btn-warning btn-sm btn-edit pb-2"><i class="bx bx-message-square-edit me-0"></i></a>
+                    <a href="' . route('tagihan.show', [$id, 'back' => 'tagihan.index']) . '" class="btn btn-success btn-sm btn-flagging pb-2"><i class="bx bx-flag me-0"></i></a>
+                    <a href="' . route('tagihan.edit', [$id, 'back' => 'tagihan.index']) . '" class="btn btn-warning btn-sm btn-edit pb-2"><i class="bx bx-message-square-edit me-0"></i></a>
                     <button data-id="' . $id . '" class="btn btn-danger btn-sm btn-delete pb-2"><i class="bx bx-message-square-x me-0"></i></button>
                     ';
                 })
@@ -258,7 +258,10 @@ class TagihanController extends Controller
                 'jenis_tagihan' => $request->jenis_tagihan,
             ];
             DB::connection('db_payment')->table('tagihan')->insert($insert);
-            return redirect()->route('tagihan.index')->with('success', 'Tagihan berhasil diubah.');
+            $back = in_array($request->input('back'), ['tagihan.index', 'tagihan-pmb.index'])
+                ? $request->input('back')
+                : 'tagihan.index';
+            return redirect()->route($back)->with('success', 'Tagihan berhasil diubah.');
         }
     }
     public function edit($id)
@@ -373,7 +376,10 @@ class TagihanController extends Controller
                 'status_aktif'     => $request->status
             ]);
 
-        return redirect()->route('tagihan.index')->with('success', 'Tagihan berhasil diubah.');
+        $back = in_array($request->input('back'), ['tagihan.index', 'tagihan-pmb.index'])
+            ? $request->input('back')
+            : 'tagihan.index';
+        return redirect()->route($back)->with('success', 'Tagihan berhasil diubah.');
     }
 
     public function show($id)
