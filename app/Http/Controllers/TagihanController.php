@@ -224,6 +224,18 @@ class TagihanController extends Controller
                 return back()->withInput()->with('error', 'Jumlah ditagihkan tidak boleh lebih besar dari total tagihan');
             }
 
+            $duplikat = DB::connection('db_payment')
+                ->table('tagihan')
+                ->where('npm', $npm)
+                ->where('id_kelas_perkuliahan', $request->kelas)
+                ->where('tahun_akademik', $request->tahun_akademik)
+                ->where('jenis_tagihan', $request->jenis_tagihan)
+                ->exists();
+
+            if ($duplikat) {
+                return back()->withInput()->with('error', 'Tagihan ' . $request->jenis_tagihan . ' sudah ada untuk mahasiswa ini pada tahun akademik tersebut.');
+            }
+
             $va_code = $service->generateVA($request->tahun_akademik);
 
             $insert = [

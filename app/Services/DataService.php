@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Bipot;
 use App\Models\BipotPerAngkatan;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DataService
@@ -226,66 +228,91 @@ class DataService
         $jenis_pendaftaran_id = $mahasiswa->jenis_pendaftaran_id;
         $semester = collect($this->expandTerms($tahun_angkatan, $tahunAkademik))->count();
 
-        $exists = DB::connection('db_payment')
-            ->table('tagihan')
-            ->where('npm', $npm)
-            ->where('id_kelas_perkuliahan', $id_program_kuliah)
-            ->where('tahun_akademik', $tahunAkademik)
-            ->where('jenis_tagihan', $jenis_tagihan)
-            ->exists();
+        // Serialize check-then-insert per (npm, tahun_akademik, jenis_tagihan) so
+        // two concurrent requests (double-click, retry, race) can't both pass the
+        // duplicate check and insert two tagihan rows for the same period.
+        $lock = Cache::lock("generate-tagihan:{$npm}:{$tahunAkademik}:{$jenis_tagihan}", 15);
 
-        if ($exists) {
+        try {
+            return $lock->block(10, function () use (
+                $npm,
+                $nama_mahasiswa,
+                $va_code,
+                $id_program_kuliah,
+                $kode_program_studi,
+                $tahun_angkatan,
+                $jenis_pendaftaran_id,
+                $semester,
+                $tahunAkademik,
+                $jenis_tagihan
+            ) {
+                $exists = DB::connection('db_payment')
+                    ->table('tagihan')
+                    ->where('npm', $npm)
+                    ->where('id_kelas_perkuliahan', $id_program_kuliah)
+                    ->where('tahun_akademik', $tahunAkademik)
+                    ->where('jenis_tagihan', $jenis_tagihan)
+                    ->exists();
+
+                if ($exists) {
+                    return [
+                        'success' => false,
+                        'message' => 'Tagihan ' . $jenis_tagihan . ' sudah ada untuk mahasiswa ini.',
+                    ];
+                }
+
+                $tagihanRaw = DB::table('master_bipot_per_angkatan as bpa')
+                    ->leftJoin('master_bipot_per_semester as bps', 'bpa.id', 'bps.id_bipot_angkatan')
+                    ->leftJoin('master_bipot as b', 'b.id', 'bps.id_bipot')
+                    ->where('bpa.kode_tahun', $tahun_angkatan)
+                    ->where('bpa.kode_prodi', $kode_program_studi)
+                    ->where('bpa.id_program_kuliah', $id_program_kuliah)
+                    ->where('bps.semester', $semester)
+                    ->whereJsonContains('bps.status_awal', $jenis_pendaftaran_id)
+                    ->get();
+
+                $rincian_tagihan = [];
+                $total_tagihan = 0;
+                foreach ($tagihanRaw as $key => $value) {
+                    $rincian_tagihan[] = [
+                        'id_bipot' => $value->id_bipot,
+                        'nama_bipot' => $value->nama_bipot,
+                        'nominal' => $value->nominal
+                    ];
+                    $total_tagihan += $value->nominal;
+                }
+
+                $insert = [
+                    'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
+                    'npm' => $npm,
+                    'nama_mahasiswa' => $nama_mahasiswa,
+                    'nomor_tagihan' => $va_code,
+                    'id_kelas_perkuliahan' => $id_program_kuliah,
+                    'nama_kelas_perkuliahan' => $this->kelas($id_program_kuliah)->value('nama_program_perkuliahan'),
+                    'nama_fakultas' => $this->prodi($kode_program_studi)->value('nama_fakultas_idn'),
+                    'kode_program_studi' => $kode_program_studi,
+                    'nama_program_studi' => $this->prodi($kode_program_studi)->value('nama_program_studi_idn'),
+                    'tahun_akademik' => $tahunAkademik,
+                    'detail_tagihan' => json_encode($rincian_tagihan),
+                    'total_tagihan' => $total_tagihan,
+                    'nominal_ditagih' => $total_tagihan,
+                    'waktu_berakhir' => Carbon::now()->addMonths(6)->endOfDay(),
+                    'jenis_tagihan' => $jenis_tagihan,
+                ];
+
+                DB::connection('db_payment')->table('tagihan')->insert($insert);
+                return [
+                    'success' => true,
+                    'message' => 'Tagihan ' . $jenis_tagihan . ' berhasil dibuat.',
+                    'data' => $insert
+                ];
+            });
+        } catch (LockTimeoutException $e) {
             return [
                 'success' => false,
-                'message' => 'Tagihan ' . $jenis_tagihan . ' sudah ada untuk mahasiswa ini.',
+                'message' => 'Sistem sedang memproses tagihan lain untuk mahasiswa ini, silakan coba lagi.',
             ];
         }
-
-        $tagihanRaw = DB::table('master_bipot_per_angkatan as bpa')
-            ->leftJoin('master_bipot_per_semester as bps', 'bpa.id', 'bps.id_bipot_angkatan')
-            ->leftJoin('master_bipot as b', 'b.id', 'bps.id_bipot')
-            ->where('bpa.kode_tahun', $tahun_angkatan)
-            ->where('bpa.kode_prodi', $kode_program_studi)
-            ->where('bpa.id_program_kuliah', $id_program_kuliah)
-            ->where('bps.semester', $semester)
-            ->whereJsonContains('bps.status_awal', $jenis_pendaftaran_id)
-            ->get();
-
-        $rincian_tagihan = [];
-        $total_tagihan = 0;
-        foreach ($tagihanRaw as $key => $value) {
-            $rincian_tagihan[] = [
-                'id_bipot' => $value->id_bipot,
-                'nama_bipot' => $value->nama_bipot,
-                'nominal' => $value->nominal
-            ];
-            $total_tagihan += $value->nominal;
-        }
-
-        $insert = [
-            'id_record_tagihan' => now()->format('YmdHisv') . rand(100, 999),
-            'npm' => $npm,
-            'nama_mahasiswa' => $nama_mahasiswa,
-            'nomor_tagihan' => $va_code,
-            'id_kelas_perkuliahan' => $id_program_kuliah,
-            'nama_kelas_perkuliahan' => $this->kelas($id_program_kuliah)->value('nama_program_perkuliahan'),
-            'nama_fakultas' => $this->prodi($kode_program_studi)->value('nama_fakultas_idn'),
-            'kode_program_studi' => $kode_program_studi,
-            'nama_program_studi' => $this->prodi($kode_program_studi)->value('nama_program_studi_idn'),
-            'tahun_akademik' => $tahunAkademik,
-            'detail_tagihan' => json_encode($rincian_tagihan),
-            'total_tagihan' => $total_tagihan,
-            'nominal_ditagih' => $total_tagihan,
-            'waktu_berakhir' => Carbon::now()->addMonths(6)->endOfDay(),
-            'jenis_tagihan' => $jenis_tagihan,
-        ];
-
-        DB::connection('db_payment')->table('tagihan')->insert($insert);
-        return [
-            'success' => true,
-            'message' => 'Tagihan ' . $jenis_tagihan . ' berhasil dibuat.',
-            'data' => $insert
-        ];
     }
     public function generateVA($tahunAkademik)
     {

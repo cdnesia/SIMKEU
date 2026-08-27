@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\SyncController;
 use App\Services\CronSyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;

@@ -37,7 +37,6 @@
                     'route' => 'bipot-per-angkatan.index',
                     'icon' => 'bx bx-radio-circle',
                 ],
-                ['title' => 'Sync Data', 'route' => 'master.sync.index', 'icon' => 'bx bx-radio-circle'],
             ],
         ],
         [

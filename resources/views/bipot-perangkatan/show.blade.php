@@ -72,8 +72,9 @@
                                     class="bx bx-comment-add me-0"></i></button>
                             @if (count($d) > 0)
                                 <button data-kode-tahun="{{ $t }}" data-kelas-id="{{ $parts[0] }}"
-                                    data-semester="{{ $c }}" class="btn btn-sm btn-primary btnCopy"
-                                    title="Salin ke semester lain"><i class="bx bx-copy me-0"></i></button>
+                                    data-kelas-nama="{{ $parts[1] ?? 'Tanpa Program' }}" data-semester="{{ $c }}"
+                                    class="btn btn-sm btn-primary btnCopy" title="Salin ke semester lain"><i
+                                        class="bx bx-copy me-0"></i></button>
                             @endif
                         </div>
                     </div>
@@ -151,83 +152,78 @@
         </div>
     @endforeach
     <!-- Modal Add/Edit -->
-    <div class="modal fade" id="modalBipot" tabindex="-1">
+    <div class="modal fade" id="modalBipot" tabindex="-1" aria-labelledby="modalBipotLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form id="formBipot" class="row g-3">
-                    @csrf
-
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalTitle">Tambah BIPOT</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="modalBipotLabel">Tambah BIPOT</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formBipot">
+                        @csrf
                         <input type="hidden" name="id" id="bipot_id">
                         <input type="hidden" name="kode_tahun" id="kode_tahun">
                         <input type="hidden" name="kelas_id" id="kelas_id">
                         <input type="hidden" name="semester" id="semester">
                         <input type="hidden" name="kode_prodi" id="kode_prodi" value="{{ request()->segment(2) }}">
 
-                        <div class="col-md-12">
-                            <label>Nama BIPOT</label>
+                        <div class="mb-2">
+                            <label for="select_bipot" class="form-label">Nama BIPOT</label>
                             <select name="id_bipot" id="select_bipot" class="form-select select2" required
                                 data-placeholder="-- Pilih BIPOT --">
                                 <option value=""></option>
                             </select>
                         </div>
 
-                        <div class="col-md-12">
-                            <label>Nominal</label>
+                        <div class="mb-2">
+                            <label for="nominal" class="form-label">Nominal</label>
                             <input type="number" name="nominal" id="nominal" class="form-control" required>
                         </div>
 
-                        <div class="mb-3">
-                            <label>Status Mahasiswa</label>
+                        <div class="mb-2">
+                            <label class="form-label">Status Mahasiswa</label>
                             <div id="checkbox_status_mahasiswa"></div>
                         </div>
 
-                        <div class="mb-3">
-                            <label>Status Awal Mahasiswa</label>
+                        <div class="mb-2">
+                            <label class="form-label">Status Awal Mahasiswa</label>
                             <div id="checkbox_status_awal"></div>
                         </div>
-
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-success">Simpan</button>
-                    </div>
-
-                </form>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" form="formBipot" class="btn btn-success btn-sm">Simpan</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Modal Copy Semester -->
-    <div class="modal fade" id="modalCopyBipot" tabindex="-1">
+    <div class="modal fade" id="modalCopyBipot" tabindex="-1" aria-labelledby="modalCopyBipotLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form id="formCopyBipot" class="row g-3">
-                    @csrf
-
-                    <div class="modal-header">
-                        <h5 class="modal-title">Salin Data BIPOT</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="modalCopyBipotLabel">Salin Data BIPOT</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCopyBipot">
+                        @csrf
                         <input type="hidden" name="kode_tahun" id="copy_kode_tahun">
                         <input type="hidden" name="kelas_id" id="copy_kelas_id">
                         <input type="hidden" name="source_semester" id="copy_source_semester">
                         <input type="hidden" name="kode_prodi" value="{{ request()->segment(2) }}">
 
-                        <div class="col-md-12">
+                        <div class="mb-2">
                             <p class="mb-1">Salin semua data BIPOT dari <strong id="copy_source_label"></strong> ke
-                                semester tujuan:</p>
+                                semester tujuan (kelas yang sama):</p>
                             <div id="checkbox_target_semester"></div>
                         </div>
 
-                        <div class="col-md-12">
+                        <div class="mb-2">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="overwrite" value="1"
                                     id="copy_overwrite">
@@ -236,12 +232,12 @@
                                 </label>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Salin</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" form="formCopyBipot" class="btn btn-primary btn-sm">Salin</button>
+                </div>
             </div>
         </div>
     </div>
@@ -321,7 +317,7 @@
 
             $(document).on('click', '.btnAdd', function() {
 
-                $('#modalTitle').text('Tambah BIPOT');
+                $('#modalBipotLabel').text('Tambah BIPOT');
                 $('#formBipot')[0].reset();
                 $('#bipot_id').val('');
 
@@ -370,12 +366,13 @@
 
             $(document).on('click', '.btnCopy', function() {
                 let sourceSemester = $(this).data('semester');
+                let kelasNama = $(this).data('kelas-nama');
 
                 $('#formCopyBipot')[0].reset();
                 $('#copy_kode_tahun').val($(this).data('kode-tahun'));
                 $('#copy_kelas_id').val($(this).data('kelas-id'));
                 $('#copy_source_semester').val(sourceSemester);
-                $('#copy_source_label').text('Semester ' + sourceSemester);
+                $('#copy_source_label').text('Kelas ' + kelasNama + ' - Semester ' + sourceSemester);
 
                 $('#checkbox_target_semester').empty();
                 $.each(allSemesters, function(i, sm) {
@@ -414,7 +411,7 @@
 
             $(document).on('click', '.btnEdit', function() {
                 let id = $(this).data('tagihan-id');
-                $('#modalTitle').text('Edit BIPOT');
+                $('#modalBipotLabel').text('Edit BIPOT');
                 $('#bipot_id').val(id);
 
                 $.get('/bipot-per-angkatan/' + id + '/edit', function(data) {

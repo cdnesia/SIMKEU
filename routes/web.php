@@ -11,7 +11,6 @@ use App\Http\Controllers\PembayaranPMBController;
 use App\Http\Controllers\PermissionsController;
 use App\Http\Controllers\PerpanjanganPerMahasiswaController;
 use App\Http\Controllers\RolesController;
-use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\TagihanPMBController;
 use App\Http\Controllers\UsersController;
@@ -41,12 +40,4 @@ Route::middleware(['auth', 'checkPermission'])->group(function () {
     Route::resource('tagihan-pmb', TagihanPMBController::class);
     Route::resource('pembayaran', PembayaranController::class);
     Route::resource('pembayaran-pmb', PembayaranPMBController::class);
-
-
-    Route::get('/master/sync/index', [SyncController::class, 'index'])->name('master.sync.index');
-    Route::get('/master/sync/bipot', [SyncController::class, 'bipot'])->name('master.sync.bipot');
-    Route::get('/master/sync/tagihan', [SyncController::class, 'tagihan'])->name('master.sync.tagihan');
-    Route::get('/master/sync/pembayaran', [SyncController::class, 'pembayaran'])->name('master.sync.pembayaran');
-    Route::get('/master/sync/bipot-per-angkatan', [SyncController::class, 'bipotPerAngkatan'])->name('master.sync.bipotperangkatan');
-    Route::get('/master/sync/bipot-per-semester', [SyncController::class, 'bipotPerSemester'])->name('master.sync.bipotpersemester');
 });
