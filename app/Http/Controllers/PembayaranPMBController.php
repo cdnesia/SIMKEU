@@ -13,8 +13,11 @@ class PembayaranPMBController extends Controller
     {
         view()->share('modul', $this->modul);
     }
-    public function index()
+    public function index(Request $request)
     {
+        $tahunAkademik = $request->query('tahun_akademik');
+        $bipotId = $request->query('bipot');
+
         $dataPembayaranRaw = DB::table('tbl_pembayaran_mahasiswa')
             ->select(
                 'tahun_akademik',
@@ -25,15 +28,19 @@ class PembayaranPMBController extends Controller
                 'bank',
                 DB::raw('SUM(nominal) as nominal')
             )
-            ->where('tahun_akademik', 'like', 'UMJA%')
+            ->where('tahun_akademik', 'like', '%UMJA%')
+            ->when($tahunAkademik, fn($q, $v) => $q->where('tahun_akademik', $v))
+            ->when($bipotId, fn($q, $v) => $q->where('id_bipot', $v))
             ->groupBy('tahun_akademik', 'npm', 'id_bipot', 'nama_bipot')
             ->get();
 
         $masterBipot = Bipot::select('id as id_bipot', 'nama_bipot')
+            ->when($bipotId, fn($q, $v) => $q->where('id', $v))
+            ->orderBy('urutan')
             ->get()
             ->keyBy('id_bipot');
 
-        $data = $dataPembayaranRaw
+        $pembayaran = $dataPembayaranRaw
             ->groupBy('tahun_akademik')
             ->sortKeysDesc()
             ->map(function ($tahunGroup) use ($masterBipot) {
@@ -61,7 +68,22 @@ class PembayaranPMBController extends Controller
                     });
             });
 
-        $d['pembayaran'] = $data;
+        $firstTahun = $pembayaran->first();
+        $firstNpm = $firstTahun ? collect($firstTahun)->first() : null;
+        $firstDetail = $firstNpm['detail'] ?? $masterBipot->map(fn($b) => ['nama_bipot' => $b->nama_bipot])->values();
+
+        $d['pembayaran'] = $pembayaran;
+        $d['firstDetail'] = $firstDetail;
+        $d['bipot_list'] = Bipot::orderBy('urutan')->get();
+        $d['tahun_akademik_list'] = DB::table('tbl_pembayaran_mahasiswa')
+            ->select('tahun_akademik')
+            ->where('tahun_akademik', 'like', '%UMJA%')
+            ->distinct()
+            ->orderByDesc('tahun_akademik')
+            ->pluck('tahun_akademik');
+        $d['tahun_akademik_terpilih'] = $tahunAkademik;
+        $d['bipot_terpilih'] = $bipotId;
+
         return view('pembayaran.view', $d);
     }
 }
