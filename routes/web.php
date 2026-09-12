@@ -40,5 +40,6 @@ Route::middleware(['auth', 'checkPermission'])->group(function () {
     Route::resource('tagihan-pmb', TagihanPMBController::class);
     Route::get('pembayaran/export', [PembayaranController::class, 'export'])->name('pembayaran.export');
     Route::resource('pembayaran', PembayaranController::class);
+    Route::get('pembayaran-pmb/export', [PembayaranPMBController::class, 'export'])->name('pembayaran-pmb.export');
     Route::resource('pembayaran-pmb', PembayaranPMBController::class);
 });

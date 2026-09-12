@@ -11,7 +11,7 @@
                 <h5 class="mb-0 fw-bold">Pembayaran Mahasiswa</h5>
                 <span class="text-muted small">Rekap pembayaran per tahun akademik dan BIPOT</span>
             </div>
-            <a href="{{ route('pembayaran.export', request()->query()) }}" class="btn btn-sm btn-success"><i
+            <a href="{{ route(request()->routeIs('pembayaran-pmb.*') ? 'pembayaran-pmb.export' : 'pembayaran.export', request()->query()) }}" class="btn btn-sm btn-success"><i
                     class="bx bx-file-blank me-0"></i> Export Excel</a>
         </div>
         <div class="card-body">
@@ -57,6 +57,7 @@
                             <th width="30px">No</th>
                             <th>Tahun Akademik</th>
                             <th>Nomor Pokok Mahasiswa</th>
+                            <th>Nama Mahasiswa</th>
                             <th>Total Pembayaran</th>
                             @foreach ($firstDetail as $detail)
                                 <th>{{ $detail['nama_bipot'] }}</th>
@@ -71,6 +72,7 @@
                                     <td>{{ $no++ }}</td>
                                     <td>{{ $tahun }}</td>
                                     <td>{{ $npm }}</td>
+                                    <td>{{ $val['nama_mahasiswa'] }}</td>
                                     <td class="text-end">{{ number_format($val['total_terbayar'], 0, ',', '.') }}</td>
                                     @foreach ($val['detail'] as $key => $item)
                                         <td class="text-end">{{ number_format($item['nominal'], 0, ',', '.') }}</td>

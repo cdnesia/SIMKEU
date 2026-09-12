@@ -26,7 +26,17 @@ class PembayaranController extends Controller
      */
     private function filteredPembayaran(Request $request)
     {
-        $tahunAkademik = $request->query('tahun_akademik');
+        $tahunAkademikList = DB::table('tbl_pembayaran_mahasiswa')
+            ->select('tahun_akademik')
+            ->whereNotLike('tahun_akademik', '%UMJA%')
+            ->distinct()
+            ->orderByDesc('tahun_akademik')
+            ->pluck('tahun_akademik');
+
+        // Tanpa filter tahun akademik eksplisit, default ke tahun terakhir agar query tidak berat.
+        $tahunAkademik = $request->has('tahun_akademik')
+            ? $request->query('tahun_akademik')
+            : $tahunAkademikList->first();
         $bipotId = $request->query('bipot');
 
         $dataPembayaranRaw = DB::table('tbl_pembayaran_mahasiswa')
@@ -39,6 +49,7 @@ class PembayaranController extends Controller
                 'bank',
                 DB::raw('SUM(nominal) as nominal')
             )
+            ->whereNotLike('tahun_akademik', '%UMJA%')
             ->when($tahunAkademik, fn($q, $v) => $q->where('tahun_akademik', $v))
             ->when($bipotId, fn($q, $v) => $q->where('id_bipot', $v))
             ->groupBy('tahun_akademik', 'npm', 'id_bipot', 'nama_bipot')
@@ -50,14 +61,21 @@ class PembayaranController extends Controller
             ->get()
             ->keyBy('id_bipot');
 
+        $namaMahasiswa = DB::connection('db_payment')->table('tagihan')
+            ->select('npm', 'nama_mahasiswa')
+            ->whereIn('npm', $dataPembayaranRaw->pluck('npm')->unique())
+            ->get()
+            ->unique('npm')
+            ->keyBy('npm');
+
         $pembayaran = $dataPembayaranRaw
             ->groupBy('tahun_akademik')
             ->sortKeysDesc()
-            ->map(function ($tahunGroup) use ($masterBipot) {
+            ->map(function ($tahunGroup) use ($masterBipot, $namaMahasiswa) {
                 return $tahunGroup
                     ->groupBy('npm')
                     ->sortKeysDesc()
-                    ->map(function ($npmGroup) use ($masterBipot) {
+                    ->map(function ($npmGroup, $npm) use ($masterBipot, $namaMahasiswa) {
                         $pembayaranPerBipot = $npmGroup->keyBy('id_bipot');
                         $detail = $masterBipot->map(function ($bipot) use ($pembayaranPerBipot) {
                             $nominal = isset($pembayaranPerBipot[$bipot->id_bipot])
@@ -72,6 +90,7 @@ class PembayaranController extends Controller
                         })->values();
 
                         return [
+                            'nama_mahasiswa' => $namaMahasiswa[$npm]->nama_mahasiswa ?? '-',
                             'total_terbayar' => $detail->sum('nominal'),
                             'detail' => $detail
                         ];
@@ -82,22 +101,18 @@ class PembayaranController extends Controller
         $firstNpm = $firstTahun ? collect($firstTahun)->first() : null;
         $firstDetail = $firstNpm['detail'] ?? $masterBipot->map(fn($b) => ['nama_bipot' => $b->nama_bipot])->values();
 
-        return [$pembayaran, $firstDetail];
+        return [$pembayaran, $firstDetail, $tahunAkademikList, $tahunAkademik];
     }
 
     public function index(Request $request)
     {
-        [$pembayaran, $firstDetail] = $this->filteredPembayaran($request);
+        [$pembayaran, $firstDetail, $tahunAkademikList, $tahunAkademikTerpilih] = $this->filteredPembayaran($request);
 
         $d['pembayaran'] = $pembayaran;
         $d['firstDetail'] = $firstDetail;
         $d['bipot_list'] = Bipot::orderBy('urutan')->get();
-        $d['tahun_akademik_list'] = DB::table('tbl_pembayaran_mahasiswa')
-            ->select('tahun_akademik')
-            ->distinct()
-            ->orderByDesc('tahun_akademik')
-            ->pluck('tahun_akademik');
-        $d['tahun_akademik_terpilih'] = $request->query('tahun_akademik');
+        $d['tahun_akademik_list'] = $tahunAkademikList;
+        $d['tahun_akademik_terpilih'] = $tahunAkademikTerpilih;
         $d['bipot_terpilih'] = $request->query('bipot');
 
         return view('pembayaran.view', $d);
