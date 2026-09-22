@@ -146,7 +146,7 @@
                             <label class="form-label">Jumlah Ditagihkan <small class="text-danger"><i>* Doble klik untuk
                                         edit</i></small></label>
                             <input type="text" name="nominal_ditagih" id="nominal_ditagih" class="form-control nominal"
-                                value="{{ old('nominal_ditagih') }}" readonly>
+                                value="{{ old('nominal_ditagih', (int) ($tagihan->nominal_ditagih ?? 0)) }}" readonly>
                         </div>
                     </div>
 
@@ -191,7 +191,7 @@
                 return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             }
 
-            function hitungTotal() {
+            function hitungTotal(forceSync = true) {
                 let total = 0;
 
                 $('#tableDetail tbody tr').each(function() {
@@ -205,7 +205,10 @@
                 $('#total_tagihan').val(formatRupiah(total));
                 let $nd = $('#nominal_ditagih');
                 if ($nd.prop('readonly')) {
-                    $nd.val(formatRupiah(total));
+                    let current = cleanNumber($nd.val());
+                    if (forceSync || current === 0) {
+                        $nd.val(formatRupiah(total));
+                    }
                 }
             }
 
@@ -214,7 +217,9 @@
                 if (n > 0) $(this).val(formatRupiah(n));
             });
 
-            hitungTotal();
+            // Saat load awal: pertahankan nominal_ditagih dari database,
+            // hanya ambil dari total_tagihan jika nilai di database 0.
+            hitungTotal(false);
 
             $(document).on('input', '.nominal', function() {
                 let n = cleanNumber($(this).val());
