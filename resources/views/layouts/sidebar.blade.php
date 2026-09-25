@@ -28,6 +28,13 @@
             ],
         ],
         [
+            'title' => 'SIMAKU Lama',
+            'icon' => 'bx bx-history',
+            'children' => [
+                ['title' => 'Data Tagihan', 'route' => 'tagihan-old.index', 'icon' => 'bx bx-radio-circle'],
+            ],
+        ],
+        [
             'title' => 'Master Data',
             'icon' => 'bx bx-sitemap',
             'children' => [

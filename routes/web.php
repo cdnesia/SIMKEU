@@ -12,6 +12,7 @@ use App\Http\Controllers\PermissionsController;
 use App\Http\Controllers\PerpanjanganPerMahasiswaController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\TagihanController;
+use App\Http\Controllers\TagihanOldController;
 use App\Http\Controllers\TagihanPMBController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,9 @@ Route::middleware(['auth', 'checkPermission'])->group(function () {
 
     Route::resource('tagihan', TagihanController::class);
     Route::resource('tagihan-pmb', TagihanPMBController::class);
+    Route::put('tagihan-old/{tagihan_old}/perpanjang', [TagihanOldController::class, 'perpanjang'])->name('tagihan-old.perpanjang');
+    Route::put('tagihan-old/{tagihan_old}/flagging', [TagihanOldController::class, 'flagging'])->name('tagihan-old.flagging');
+    Route::resource('tagihan-old', TagihanOldController::class)->only('index', 'show', 'update', 'destroy');
     Route::get('pembayaran/export', [PembayaranController::class, 'export'])->name('pembayaran.export');
     Route::resource('pembayaran', PembayaranController::class);
     Route::get('pembayaran-pmb/export', [PembayaranPMBController::class, 'export'])->name('pembayaran-pmb.export');
