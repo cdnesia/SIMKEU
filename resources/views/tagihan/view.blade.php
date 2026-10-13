@@ -32,6 +32,7 @@
                             <th>Total Potongan</th>
                             <th>Jumlah Ditagih</th>
                             <th>Jumlah Terbayar</th>
+                            <th>Tanggal Pembayaran</th>
                             <th>Status Tagihan</th>
                             @canany([$modul . '.edit', $modul . '.destroy'])
                                 <th width="50px">Aksi</th>
@@ -166,6 +167,11 @@
                     {
                         data: 'nominal_terbayar',
                         name: 'nominal_terbayar'
+                    },
+                    {
+                        data: 'tanggal_pembayaran',
+                        name: 'tanggal_pembayaran',
+                        searchable: false
                     },
                     {
                         data: 'status_aktif',
