@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,9 +18,22 @@ class TagihanPMBController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = DB::connection('db_payment')->table('tagihan')->where('tahun_akademik','like', '%UMJA%');
+            $data = DB::connection('db_payment')->table('tagihan')
+                ->select('tagihan.*')
+                // Ambil waktu transaksi bank terakhir dari tabel pembayaran
+                ->selectSub(function ($q) {
+                    $q->from('pembayaran')
+                        ->selectRaw('MAX(waktu_transaksi_bank)')
+                        ->whereColumn('pembayaran.id_record_tagihan', 'tagihan.id_record_tagihan');
+                }, 'tanggal_pembayaran')
+                ->where('tahun_akademik', 'like', '%UMJA%');
             return DataTables::of($data)
                 ->addIndexColumn()
+                ->editColumn('tanggal_pembayaran', function ($item) {
+                    return $item->tanggal_pembayaran
+                        ? Carbon::parse($item->tanggal_pembayaran)->format('d-m-Y H:i')
+                        : '-';
+                })
                 ->editColumn('detail_tagihan', function ($item) {
                     $detail = '';
                     $json = json_decode($item->detail_tagihan, true);

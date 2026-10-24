@@ -28,6 +28,7 @@ class TagihanController extends Controller
                         ->whereColumn('pembayaran.id_record_tagihan', 'tagihan.id_record_tagihan');
                 }, 'tanggal_pembayaran')
                 ->whereNotLike('tahun_akademik', '%UMJA%');
+                
             return DataTables::of($data)
                 ->addIndexColumn()
                 ->editColumn('tanggal_pembayaran', function ($item) {
