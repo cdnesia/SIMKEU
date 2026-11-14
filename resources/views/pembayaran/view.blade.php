@@ -58,6 +58,8 @@
                             <th>Tahun Akademik</th>
                             <th>Nomor Pokok Mahasiswa</th>
                             <th>Nama Mahasiswa</th>
+                            <th>Program Studi</th>
+                            <th>Kelas</th>
                             <th>Total Pembayaran</th>
                             @foreach ($firstDetail as $detail)
                                 <th>{{ $detail['nama_bipot'] }}</th>
@@ -73,6 +75,8 @@
                                     <td>{{ $tahun }}</td>
                                     <td>{{ $npm }}</td>
                                     <td>{{ $val['nama_mahasiswa'] }}</td>
+                                    <td>{{ $val['nama_program_studi'] ?? '-' }}</td>
+                                    <td>{{ $val['nama_kelas'] ?? '-' }}</td>
                                     <td class="text-end">{{ number_format($val['total_terbayar'], 0, ',', '.') }}</td>
                                     @foreach ($val['detail'] as $key => $item)
                                         <td class="text-end">{{ number_format($item['nominal'], 0, ',', '.') }}</td>

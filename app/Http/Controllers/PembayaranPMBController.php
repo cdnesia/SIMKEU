@@ -53,21 +53,27 @@ class PembayaranPMBController extends Controller
             ->get()
             ->keyBy('id_bipot');
 
-        $namaMahasiswa = DB::connection('db_payment')->table('tagihan')
-            ->select('npm', 'nama_mahasiswa')
+        // Data mahasiswa (nama, prodi, kelas) diambil dari tabel tagihan.
+        $tagihanMahasiswa = DB::connection('db_payment')->table('tagihan')
+            ->select('npm', 'tahun_akademik', 'nama_mahasiswa', 'nama_program_studi', 'nama_kelas_perkuliahan')
             ->whereIn('npm', $dataPembayaranRaw->pluck('npm')->unique())
-            ->get()
-            ->unique('npm')
-            ->keyBy('npm');
+            ->orderByDesc('tahun_akademik')
+            ->get();
+
+        // Prioritas: tagihan pada tahun akademik yang sama, fallback ke tagihan terbaru milik NPM tsb.
+        $tagihanPerTahun = $tagihanMahasiswa->unique(fn($t) => $t->npm . '|' . $t->tahun_akademik)
+            ->keyBy(fn($t) => $t->npm . '|' . $t->tahun_akademik);
+        $tagihanPerNpm = $tagihanMahasiswa->unique('npm')->keyBy('npm');
 
         $pembayaran = $dataPembayaranRaw
             ->groupBy('tahun_akademik')
             ->sortKeysDesc()
-            ->map(function ($tahunGroup) use ($masterBipot, $namaMahasiswa) {
+            ->map(function ($tahunGroup, $tahun) use ($masterBipot, $tagihanPerTahun, $tagihanPerNpm) {
                 return $tahunGroup
                     ->groupBy('npm')
                     ->sortKeysDesc()
-                    ->map(function ($npmGroup, $npm) use ($masterBipot, $namaMahasiswa) {
+                    ->map(function ($npmGroup, $npm) use ($masterBipot, $tahun, $tagihanPerTahun, $tagihanPerNpm) {
+                        $tagihan = $tagihanPerTahun[$npm . '|' . $tahun] ?? $tagihanPerNpm[$npm] ?? null;
                         $pembayaranPerBipot = $npmGroup->keyBy('id_bipot');
                         $detail = $masterBipot->map(function ($bipot) use ($pembayaranPerBipot) {
                             $nominal = isset($pembayaranPerBipot[$bipot->id_bipot])
@@ -82,7 +88,9 @@ class PembayaranPMBController extends Controller
                         })->values();
 
                         return [
-                            'nama_mahasiswa' => $namaMahasiswa[$npm]->nama_mahasiswa ?? '-',
+                            'nama_mahasiswa' => $tagihan->nama_mahasiswa ?? '-',
+                            'nama_program_studi' => $tagihan->nama_program_studi ?? '-',
+                            'nama_kelas' => $tagihan->nama_kelas_perkuliahan ?? '-',
                             'total_terbayar' => $detail->sum('nominal'),
                             'detail' => $detail
                         ];
