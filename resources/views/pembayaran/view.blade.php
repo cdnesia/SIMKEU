@@ -11,7 +11,9 @@
                 <h5 class="mb-0 fw-bold">Pembayaran Mahasiswa</h5>
                 <span class="text-muted small">Rekap pembayaran per tahun akademik dan BIPOT</span>
             </div>
-            <a href="{{ route(request()->routeIs('pembayaran-pmb.*') ? 'pembayaran-pmb.export' : 'pembayaran.export', request()->query()) }}" class="btn btn-sm btn-success"><i
+            {{-- Pakai query string mentah: route() membuang parameter kosong (null), sehingga
+                 pilihan "Semua Tahun Akademik" hilang dan export kembali ke tahun default. --}}
+            <a href="{{ route(request()->routeIs('pembayaran-pmb.*') ? 'pembayaran-pmb.export' : 'pembayaran.export') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" class="btn btn-sm btn-success"><i
                     class="bx bx-file-blank me-0"></i> Export Excel</a>
         </div>
         <div class="card-body">
